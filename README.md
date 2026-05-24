@@ -14,12 +14,6 @@ You can learn more about that [here](https://blog.xqhare.net/posts/why_solve_pro
 
 - _**No dependencies**_: All code is written by me or part of std.
 
-## Environment
-
-Eshu expects the environment to provide:
-
-- `ls` UNIX command
-
 ## Naming
 
 As with all my projects, Eshu is named after an ancient deity.
@@ -35,7 +29,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-Eshu = { git = "https://github.com/xqhare/eshu" }
+eshu = { git = "https://github.com/xqhare/eshu" }
 ```
 
 ### Example
