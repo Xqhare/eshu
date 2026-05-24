@@ -1,6 +1,6 @@
 # Contributing
 
-$NAME is open to contributions by anyone. As long as you are a human, you are welcome.\
+Eshu is open to contributions by anyone. As long as you are a human, you are welcome.\
 Wankers over Clankers after all. This doesn’t mean you can’t use AI to assist you - However, you are expected to be able to explain your code and any decisions made.
 
 ## Contribution Rules
@@ -31,19 +31,19 @@ In general documentation should be written in the following format:
 
 # Arguments
 
-* `[Argument Name]` - [Description]
+* `[Argument Name]` - A zero-dependency Rust library for building robust CLI tools with automatic help and man-page generation.
 
 # Returns
 
-[Description]
+A zero-dependency Rust library for building robust CLI tools with automatic help and man-page generation.
 
 # Errors
 
-[Description]
+A zero-dependency Rust library for building robust CLI tools with automatic help and man-page generation.
 
 # Panics
 
-[Description]
+A zero-dependency Rust library for building robust CLI tools with automatic help and man-page generation.
 
 # Example
 

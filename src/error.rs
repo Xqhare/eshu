@@ -1,33 +1,33 @@
 use std::fmt;
 
-pub type $NAMEResult<T> = Result<T, $NAMEError>;
+pub type EshuResult<T> = Result<T, EshuError>;
 
 #[derive(Debug)]
-pub enum $NAMEError {
+pub enum EshuError {
     Generic(String),
     Io(std::io::Error),
 }
 
-impl fmt::Display for $NAMEError {
+impl fmt::Display for EshuError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            $NAMEError::Generic(msg) => write!(f, "{}", msg),
-            $NAMEError::Io(err) => write!(f, "{}", err),
+            EshuError::Generic(msg) => write!(f, "{}", msg),
+            EshuError::Io(err) => write!(f, "{}", err),
         }
     }
 }
 
-impl std::error::Error for $NAMEError {
+impl std::error::Error for EshuError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            $NAMEError::Generic(_) => None,
-            $NAMEError::Io(err) => Some(err),
+            EshuError::Generic(_) => None,
+            EshuError::Io(err) => Some(err),
         }
     }
 }
 
-impl From<std::io::Error> for $NAMEError {
+impl From<std::io::Error> for EshuError {
     fn from(err: std::io::Error) -> Self {
-        $NAMEError::Io(err)
+        EshuError::Io(err)
     }
 }
