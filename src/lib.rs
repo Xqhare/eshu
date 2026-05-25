@@ -26,20 +26,12 @@
     reason = "Ignored warnings"
 )]
 
+mod cli;
+mod cli_cmd;
 mod error;
+mod parsed_args;
 
-/// Adds two numbers
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use cli::Cli;
+pub use cli_cmd::CliCommand;
+pub use error::EshuError;
+pub use parsed_args::ParsedArgs;
