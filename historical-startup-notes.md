@@ -27,6 +27,37 @@ Since the shell provides a list of normalized strings (`argv`), the parser acts 
 | `filename.txt`| Positional | Added to `args.args()` list |
 | `--` | Stopper | Everything after is treated as a raw positional argument |
 
+```bash
+usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]
+           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]
+           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--no-lazy-fetch]
+           [--no-optional-locks] [--no-advice] [--bare] [--git-dir=<path>]
+           [--work-tree=<path>] [--namespace=<name>] [--config-env=<name>=<envvar>]
+           <command> [<args>]
+```
+
+- `-v` and `--version` are flags.
+- `-h` and `--help` are flags.
+- `-C <path>` is an option.
+- `-c <name>=<value>` is a KV store.
+- `--exec-path[=<path>]` is an option.
+- `--html-path` is a flag.
+- `--man-path` is a flag.
+- `--info-path` is a flag.
+- `-p`, `--paginate`, `-P`, and `--no-pager` are flags.
+- `--no-replace-objects` is a flag.
+- `--no-lazy-fetch` is a flag.
+- `--no-optional-locks` is a flag.
+- `--no-advice` is a flag.
+- `--bare` is a flag.
+- `--git-dir=<path>` is an option.
+- `--work-tree=<path>` is an option.
+- `--namespace=<name>` is an option.
+- `--config-env=<name>=<envvar>` is a KV store.
+- `<command>` and `<args>` are positionals.
+
+`program -h --version -C home/user/path/ -c key=val --exec-path=/usr/bin -p --no-replace-objects --bare --git-dir=/home/user/.git --work-tree=/home/user/ --namespace=main --config-env=git=--paginate -- paginate`
+
 ## Core API: The Builder Pattern
 
 ```rust
@@ -89,7 +120,7 @@ Improve the `eshu` command-line parsing API by separating flags, options, and su
 
 ## Architecture
 
-We divide the API into four core components:
+Divide the API into four core components:
 1. **CliFlag & CliOption**: Dedicated config types representing boolean flags and key-value options.
 2. **CliCommand**: A trait for subcommands, exposing their local flags/options/nested subcommands, and providing an execution hook.
 3. **Cli**: The entry point/builder that stores top-level configurations and initiates parsing.

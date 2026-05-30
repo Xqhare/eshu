@@ -1,4 +1,4 @@
-use crate::cli_cmd::{self, CliCommand};
+use crate::cli_cmd::{CliCommand, CliFlag, CliOption};
 
 /// Generate a command line interface
 #[derive(Debug)]
@@ -9,8 +9,12 @@ pub struct Cli<'a> {
     version: String,
     /// The description of the program
     about: String,
+    /// The flags of the program
+    flags: Vec<CliFlag>,
+    /// The options of the program
+    options: Vec<CliOption>,
     /// The commands of the program
-    commands: Vec<Box<dyn CliCommand<'a>>>,
+    sub_commands: Vec<Box<dyn CliCommand<'a>>>,
 }
 
 impl<'a> Cli<'a> {
@@ -25,12 +29,14 @@ impl<'a> Cli<'a> {
     ///
     /// # Notes
     ///
-    /// The default capacity is 5 for the version string (`1.2.3` is 5 ASCII characters and
-    /// thus 5 bytes), 255 for the about string and 16 for the command vector.
+    /// The default capacity is 5 bytes for the version string (`1.2.3` is 5 ASCII characters and
+    /// thus 5 bytes), 255 bytes for the about string and 16 elements for the subcommand, flags, and
+    /// options vector respectively.
     /// These values are a best effort guess to cover most use cases and minimize allocations
     pub fn new(name: &str) -> Self {
-        let (ver_cap, about_cap, cmd_cap) = (5, 255, 16);
-        Cli::new_with_capacity(name, ver_cap, about_cap, cmd_cap)
+        let (ver_cap, about_cap) = (5, 255);
+        let (flag_cap, option_cap, cmd_cap) = (16, 16, 16);
+        Cli::new_with_capacity(name, ver_cap, about_cap, flag_cap, option_cap, cmd_cap)
     }
     /// Create a new command line interface with a custom capacity
     ///
@@ -39,13 +45,24 @@ impl<'a> Cli<'a> {
     /// * `name` - The name of the program
     /// * `ver_cap` - The capacity of the version string (`1.2.3` is 5 ASCII characters)
     /// * `about_cap` - The capacity of the about string
+    /// * `flag_cap` - The capacity of the flag vector
+    /// * `option_cap` - The capacity of the option vector
     /// * `cmd_cap` - The capacity of the command vector
-    pub fn new_with_capacity(name: &str, ver_cap: usize, about_cap: usize, cmd_cap: usize) -> Self {
+    pub fn new_with_capacity(
+        name: &str,
+        ver_cap: usize,
+        about_cap: usize,
+        flag_cap: usize,
+        option_cap: usize,
+        cmd_cap: usize,
+    ) -> Self {
         Cli {
             name: name.to_string(),
             version: String::with_capacity(ver_cap),
             about: String::with_capacity(about_cap),
-            commands: Vec::with_capacity(cmd_cap),
+            flags: Vec::with_capacity(flag_cap),
+            options: Vec::with_capacity(option_cap),
+            sub_commands: Vec::with_capacity(cmd_cap),
         }
     }
     /// Set the name of the program
@@ -78,13 +95,7 @@ impl<'a> Cli<'a> {
         &self.version
     }
     /// Add a Flag command
-    pub fn flag(&mut self, flag_char: char, name: &str, about: &str) {
-        self.commands.push(Box::new(cli_cmd::Flag {
-            flag_char,
-            name,
-            about,
-        }));
-    }
+    pub fn flag(&mut self, flag_char: char, name: &str, about: &str) {}
     /// Check if a flag is set
     ///
     /// # Arguments
@@ -95,54 +106,19 @@ impl<'a> Cli<'a> {
     ///
     /// True if the flag is set
     /// False if the flag is not set
-    pub fn get_flag(&self, flag_char: char) -> bool {
-        for cmd in &self.commands {
-            if let cli_cmd::CliCommand::Flag { flag_char: fc, .. } = cmd {
-                if fc == &flag_char {
-                    return true;
-                }
-            }
-        }
-        false
-    }
+    pub fn get_flag(&self, flag_char: char) -> bool {}
     /// Add a Option command
-    pub fn option(&mut self, flag_char: char, name: &str, about: &str, default: &str) {
-        self.commands.push(Box::new(cli_cmd::Option {
-            flag_char,
-            name,
-            about,
-            default,
-        }));
-    }
+    pub fn option(&mut self, flag_char: char, name: &str, about: &str, default: &str) {}
     /// Get the default value of an option
-    pub fn get_option(&self, flag_char: char) -> Option<String> {
-        for cmd in &self.commands {
-            if let cli_cmd::CliCommand::Option {
-                flag_char: fc,
-                default,
-                payload,
-                ..
-            } = cmd
-            {
-                if fc == &flag_char {
-                    if let Some(p) = payload {
-                        return Some(p.clone());
-                    } else {
-                        return Some(default.clone());
-                    }
-                }
-            }
-        }
-        None
-    }
+    pub fn get_option(&self, flag_char: char) -> Option<String> {}
     /// Add a Command command
     pub fn subcommand(&mut self, cmd: Box<dyn CliCommand<'a>>) {
-        self.commands.push(cmd);
+        self.sub_commands.push(cmd);
     }
     /// Execute and parse the command line arguments
     pub fn execute(&self) {
         for args in parsed_args_vec() {
-            for cmd in &self.commands {
+            for cmd in &self.sub_commands {
                 cmd.execute(&args);
             }
         }
@@ -167,7 +143,7 @@ pub type RoffString = String;
 
 impl Default for Cli<'_> {
     fn default() -> Self {
-        // A bit of self promotion if name is not set later :-)
-        Cli::new("Eshu powered Cli Program Default Name")
+        // A cheeky bit of self promotion if name is not set later on :-)
+        Cli::new("Default Name of a Eshu powered Cli Program")
     }
 }
