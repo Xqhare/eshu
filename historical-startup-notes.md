@@ -27,6 +27,8 @@ Since the shell provides a list of normalized strings (`argv`), the parser acts 
 | `filename.txt`| Positional | Added to `args.args()` list |
 | `--` | Stopper | Everything after is treated as a raw positional argument |
 
+### Grammar & Rethink
+
 ```bash
 usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]
            [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]
@@ -56,7 +58,42 @@ usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]
 - `--config-env=<name>=<envvar>` is a KV store.
 - `<command>` and `<args>` are positionals.
 
-`program -h --version -C home/user/path/ -c key=val --exec-path=/usr/bin -p --no-replace-objects --bare --git-dir=/home/user/.git --work-tree=/home/user/ --namespace=main --config-env=git=--paginate -- paginate`
+Put all of these together and you get:
+
+`program -h --version -C home/user/path/ -c key=val --exec-path=/usr/bin -p --no-replace-objects --bare --git-dir=/home/user/.git --work-tree=/home/user/ --namespace=main --config-env=git=--paginate textfile.txt -- paginate`
+
+### More Research
+
+3 Layers:
+
+1. POSIX
+2. GNU
+3. Modern Best Practices
+
+#### POSIX
+
+(Flags == Options; Flags is the 'historical' name)
+
+- Sort flags: `-h`
+- Required bundled flags: `-vh`
+- Attached values: `-cFile` preferred over `-c File`
+
+- Strict order: all flags *must* appear before any positionals. Parser assumes only positionals after the first positional encountered
+
+#### GNU
+
+- Long options: `--long-option`
+- Explicit value: `--key=value`
+
+- Mixed order: Flags can be intermixed with positionals
+
+#### Modern Best Practices
+
+- Subcommands: `git commit -m ""` where commit is a subcommand (positional in old terms)
+
+- Optimise for readability: `--extract --gzip` over `-xz`
+- Error output: "Did you mean --fetch?" or "Did you mean --exec-path?"
+- Rich, Colourised `--help` output
 
 ## Core API: The Builder Pattern
 
