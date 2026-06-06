@@ -84,7 +84,7 @@ pub enum StoreType {
 ///
 /// If a flag is detached, the calling syntax will be `--flag-name value`.
 /// If the flag has a required store, the calling syntax will be `--flag-name value`, otherwise the calling syntax will be `--flag-name [value]`.
-/// Please note, this also allows `--flag-name "a value with spaces"`, which is not possible with an attached flag
+/// Please note, this also allows `--flag-name "a value with spaces"`, which is not possible with an attached flag (POSIX is as much to blame as my lazy ass).
 #[derive(Debug)]
 pub enum StoreSyntax {
     /// Attached; `--flag-name=value`
