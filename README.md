@@ -72,7 +72,7 @@ It is important to know that there is no formalised syntax agreed upon for CLI t
 If you want to dive into the details, I have written a blog post [A Guide to the Syntax of CLI Tooling: Modern Problems Require Old Solutions](https://blog.xqhare.net/posts/cli_modern_problems_old_solutions/).
 
 Please note, I use the term "flag" to refer to all elements that start with a dash `-` or two dashes `--`.
-The term "key value pair" refers to all elements that contain at least one equal sign `=`. Key value pairs may never have more than two equal signs. If a pair contains two equal signs,it is called a named key value pair.
+The term "key value pair" refers to all elements that contain at least one equal sign `=`. Key value pairs may never have more than two equal signs. A pair may only contain two equal signs if it is an attached value.
 The term "argument" refers to all elements that are passed to a specific flag or command. These may be required or optional.
 
 In general terms the syntax offered by `Eshu` is:

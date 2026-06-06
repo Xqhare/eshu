@@ -1,4 +1,6 @@
-use std::{collections::BTreeMap, env::args_os};
+use std::collections::BTreeMap;
+
+use crate::Cli;
 
 /// Parse command line arguments
 #[derive(Debug, Clone)]
@@ -13,7 +15,7 @@ pub struct ParsedArgs {
 }
 
 impl ParsedArgs {
-    pub fn new() -> Self {
+    pub fn new<I: Iterator<Item = String>>(cli: &Cli, args: I) -> Self {
         let mut flags_by_char = BTreeMap::new();
         let mut flags_by_name = BTreeMap::new();
         let mut options_by_char = BTreeMap::new();
@@ -23,10 +25,9 @@ impl ParsedArgs {
         let mut positionals = Vec::new();
 
         let mut stopper_found = false;
-        let mut args = args_os().peekable();
+        let mut args = args.peekable();
 
         while let Some(arg) = args.next() {
-            let arg = arg.to_string_lossy().to_string();
             if arg == "--" {
                 stopper_found = true;
                 continue;
@@ -39,7 +40,6 @@ impl ParsedArgs {
                 positionals.push(arg);
             } else {
                 if let Some(next_arg) = args.peek() {
-                    let next_arg = next_arg.to_string_lossy().to_string();
                     if is_positional(next_arg.as_str()) {
                         if arg.len() == 2 {
                             if next_arg.contains('=') {
@@ -53,7 +53,8 @@ impl ParsedArgs {
                             } else {
                                 let char = arg.replace('-', "");
                                 debug_assert!(char.len() == 1);
-                                options_by_char.insert(char.chars().next().unwrap(), next_arg);
+                                options_by_char
+                                    .insert(char.chars().next().unwrap(), next_arg.to_string());
                             }
                         } else {
                         }

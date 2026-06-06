@@ -32,6 +32,6 @@ mod error;
 mod parsed_args;
 
 pub use cli::Cli;
-pub use cli_cmd::CliCommand;
+pub use cli_cmd::*;
 pub use error::EshuError;
 pub use parsed_args::ParsedArgs;
