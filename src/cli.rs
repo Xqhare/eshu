@@ -5,7 +5,7 @@ use crate::{
     arg_parser::parse_args,
     cli_cmd::{CliCommand, CliFlag},
     error::EshuResult,
-    utils::{Store, contains_whitespace},
+    utils::{RoffString, Store, contains_whitespace},
 };
 
 /// Generate a command line interface
@@ -47,6 +47,45 @@ impl<'a> Cli<'a> {
     pub fn new<S: Into<String>>(name: S) -> CliBuilder<'a> {
         CliBuilder::new(name)
     }
+
+    /// Check if a flag was entered
+    ///
+    /// # Arguments
+    ///
+    /// * `flag_name` - The name of the flag to check for (long form, e.g. `--flag-name`)
+    pub fn is_flag_entered(&self, flag_name: &str) -> bool {
+        self.entered_flags.contains_key(flag_name)
+    }
+
+    /// Get the store of a flag
+    ///
+    /// # Arguments
+    ///
+    /// * `flag_name` - The name of the flag to get the store for (long form, e.g. `--flag-name`)
+    pub fn get_flag_store(&self, flag_name: &str) -> Option<&Store> {
+        self.entered_flags.get(flag_name).map(|(_, store)| store)
+    }
+
+    /// Get the unknown arguments
+    ///
+    /// Only available if `handle_unknown_args` is `true`
+    pub fn get_unknown_args(&self) -> Option<&Vec<String>> {
+        self.unknown_args.as_ref()
+    }
+
+    /// Create a manpage for the cli
+    pub fn make_manpage(&self) -> RoffString {
+        todo!("create a valid manpage for the cli")
+    }
+
+    pub(crate) fn print_help(&self) {
+        todo!("create help message & print it")
+    }
+
+    pub(crate) fn print_version(&self) {
+        // Taken 1 to 1 from `git --version`
+        println!("{} version {}", self.name, self.version);
+    }
 }
 
 pub struct CliBuilder<'a> {
@@ -66,11 +105,21 @@ impl<'a> CliBuilder<'a> {
     ///
     /// * `name` - The name of the program. May contain no whitespace and may not be empty
     pub fn new<S: Into<String>>(name: S) -> CliBuilder<'a> {
+        let help_flag = CliFlag::new("help")
+            .with_flag_char('h')
+            .with_short_about("Prints help information")
+            .with_long_about("Also prints this message.")
+            .build();
+        let version_flag = CliFlag::new("version")
+            .with_short_about("Prints version information")
+            .with_long_about("Prints nothing else.")
+            .build();
+        let flags = vec![help_flag.unwrap(), version_flag.unwrap()];
         CliBuilder {
             name: name.into(),
             version: None,
             about: String::new(),
-            flags: Vec::new(),
+            flags,
             sub_commands: Vec::new(),
             handle_unknown_args: false,
         }

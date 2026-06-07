@@ -79,7 +79,7 @@ pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
         None
     };
 
-    Ok(Cli {
+    let cli = Cli {
         name: cli_builder.name,
         version: cli_builder.version.unwrap(),
         about: cli_builder.about,
@@ -87,7 +87,18 @@ pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
         sub_commands: cli_builder.sub_commands,
         entered_flags,
         unknown_args,
-    })
+    };
+
+    if cli.is_flag_entered("help") {
+        cli.print_help();
+        std::process::exit(0);
+    }
+    if cli.is_flag_entered("version") {
+        cli.print_version();
+        std::process::exit(0);
+    }
+
+    Ok(cli)
 }
 
 fn parse_grouped_flags(arg: &str, cli_builder: &CliBuilder) -> Vec<(String, (usize, Store))> {
