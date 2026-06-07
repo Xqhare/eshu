@@ -163,7 +163,7 @@ impl CliFlag {
     /// # Example
     ///
     /// ```
-    /// use eshu::CliFlag;
+    /// use eshu::{CliFlag, StoreType, StoreSyntax};
     ///
     /// let flag = CliFlag::new_custom(
     ///     Some('l'),
@@ -172,8 +172,8 @@ impl CliFlag {
     ///     "long about".to_string(),
     ///     false,
     ///     true,
-    ///     StoreType::Value,
-    ///     StoreSyntax::Attached
+    ///     Some(StoreType::Value),
+    ///     Some(StoreSyntax::Attached)
     /// );
     /// assert!(flag.is_ok());
     /// ```
@@ -460,7 +460,7 @@ impl CliFlagBuilder {
     ///
     /// # Example
     /// ```
-    /// use eshu::CliFlag;
+    /// use eshu::{CliFlag, StoreType, StoreSyntax};
     ///
     /// let flag = CliFlag::new("flag-name")
     ///     .with_storing()

@@ -215,8 +215,9 @@ impl<'a> CliBuilder<'a> {
     ///
     /// let cli = Cli::new("my-cli")
     ///     .with_version(env!("CARGO_PKG_VERSION"))
-    ///     .build();
-    /// assert!(cli.is_err()); // Not all required fields are set
+    ///     .handle_unknown_args()
+    ///     .parse();
+    /// assert!(cli.is_ok());
     /// ```
     pub fn with_version(mut self, version: &str) -> Self {
         self.version = Some(version.to_string());
@@ -238,7 +239,7 @@ impl<'a> CliBuilder<'a> {
     ///
     /// let cli = Cli::new("my-cli")
     ///     .with_about("My CLI with special features")
-    ///     .build();
+    ///     .parse();
     /// assert!(cli.is_err()); // Not all required fields are set
     /// ```
     pub fn with_about(mut self, about: &str) -> Self {
