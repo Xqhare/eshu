@@ -79,6 +79,12 @@ impl<'a> Cli<'a> {
     }
 
     pub(crate) fn print_help(&self) {
+        let footer = format!(
+            "This CLI experience is provided by Eshu, version {}. For more information, visit {}",
+            env!("CARGO_PKG_VERSION"),
+            env!("CARGO_PKG_HOMEPAGE")
+        );
+        let final_string = format!("{}\n\n{}\n\n{}", header, body, footer);
         todo!("create help message & print it")
     }
 
