@@ -1,6 +1,10 @@
 use std::{collections::BTreeMap, fmt::Debug};
 
-use crate::{EshuError, error::EshuResult};
+use crate::{
+    EshuError,
+    error::EshuResult,
+    utils::{contains_whitespace, starts_with_dash},
+};
 
 impl Debug for dyn CliCommand<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -40,18 +44,6 @@ pub trait CliCommand<'c> {
     fn execute(&self, args: &Vec<String>);
 }
 
-/// The store of the flag
-/// This is returned by the `Cli::parse` function
-/// The type of the store is determined by the `CliFlag::store_type`
-///
-/// * `Value` - A `Vec<String>` (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed values.)
-/// * `KeyValue` - A `BTreeMap<String, String>` (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed key-value pairs.)
-#[derive(Debug)]
-pub enum Store {
-    Value(Vec<String>),
-    KeyValue(BTreeMap<String, String>),
-}
-
 /// The kind of the store
 ///
 /// * `Optional` - No value is required with the flag, but it may be passed with one
@@ -84,12 +76,12 @@ pub enum StoreType {
 ///
 /// If a flag is detached, the calling syntax will be `--flag-name value`.
 /// If the flag has a required store, the calling syntax will be `--flag-name value`, otherwise the calling syntax will be `--flag-name [value]`.
-/// Please note, this also allows `--flag-name "a value with spaces"`, which is not possible with an attached flag (POSIX is as much to blame as my lazy ass).
+/// Please note, this also allows `--flag-name "a value with spaces"`, which is not possible with an attached flag (blame POSIX).
 #[derive(Debug)]
 pub enum StoreSyntax {
-    /// Attached; `--flag-name=value`
+    /// Attached to the flag; `--flag-name=value` or `--flag-name=key=value`
     Attached,
-    /// Detached; `--flag-name value` or `--flag-name "a value with spaces"`
+    /// Detached from the flag; `--flag-name value` or `--flag-name "a value with spaces"` or `--flag-name key=value`
     Detached,
 }
 
@@ -98,29 +90,29 @@ pub enum StoreSyntax {
 pub struct CliFlag {
     /// The, optional, short flag, e.g. `-f`
     /// May not contain a dash, `-`
-    flag_char: Option<char>,
+    pub(crate) flag_char: Option<char>,
     /// The long flag, e.g. `--flag-name`
     /// This is also used as the name of the flag
     /// May contain no whitespace or a leading dash or double dash, `-` or `--`
-    long_flag: String,
+    pub(crate) long_flag: String,
     /// The about or help text for the flag.
     /// May be used on its own or together with `long_about`
     /// Should be short, one liner
-    short_about: String,
+    pub(crate) short_about: String,
     /// The long about or help text for the flag.
     /// Will be always used together with `short_about` if used at all.
     /// Should be longer, may contain new lines and usage examples
-    long_about: String,
+    pub(crate) long_about: String,
     /// Does the flag require passed arguments
-    required_store: bool,
+    pub(crate) required_store: bool,
     /// Does the flag accept passed arguments
-    storing: bool,
+    pub(crate) storing: bool,
     /// The kind of the store (Optional or Required)
-    store_kind: Option<StoreKind>,
+    pub(crate) store_kind: Option<StoreKind>,
     /// The type of the store (Value or KeyValue)
-    store_type: Option<StoreType>,
+    pub(crate) store_type: Option<StoreType>,
     /// The syntax of the store (Attached or Detached)
-    store_syntax: Option<StoreSyntax>,
+    pub(crate) store_syntax: Option<StoreSyntax>,
 }
 
 impl CliFlag {
@@ -207,7 +199,7 @@ impl CliFlag {
             ));
         }
         if let Some(char) = flag_char {
-            if !char.is_alphabetic() {
+            if !char.is_ascii_alphabetic() {
                 return Err(EshuError::InvalidName(
                     "Short flag must be a letter".to_string(),
                 ));
@@ -240,19 +232,6 @@ impl CliFlag {
             store_syntax,
         })
     }
-}
-
-fn starts_with_dash(s: &str) -> bool {
-    s.starts_with('-')
-}
-
-fn contains_whitespace(s: &str) -> bool {
-    for char in s.chars() {
-        if char.is_whitespace() {
-            return true;
-        }
-    }
-    false
 }
 
 // This doc really is just to make clippy shut up. The real doc is on `CliFlag`
@@ -536,7 +515,7 @@ impl CliFlagBuilder {
             ));
         }
         if let Some(char) = self.flag_char {
-            if !char.is_alphabetic() {
+            if !char.is_ascii_alphabetic() {
                 return Err(EshuError::InvalidName("Flag must be a letter".to_string()));
             }
         }

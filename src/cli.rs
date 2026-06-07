@@ -1,149 +1,191 @@
-use crate::cli_cmd::{CliCommand, CliFlag, CliOption};
+use std::collections::BTreeMap;
+
+use crate::{
+    EshuError,
+    arg_parser::parse_args,
+    cli_cmd::{CliCommand, CliFlag},
+    error::EshuResult,
+    utils::{Store, contains_whitespace},
+};
 
 /// Generate a command line interface
 #[derive(Debug)]
 pub struct Cli<'a> {
     /// The name of the program
-    name: String,
+    pub(crate) name: String,
     /// The version of the program
-    version: String,
+    pub(crate) version: String,
     /// The description of the program
-    about: String,
+    pub(crate) about: String,
     /// The flags of the program
-    flags: Vec<CliFlag>,
-    /// The options of the program
-    options: Vec<CliOption>,
+    pub(crate) flags: Vec<CliFlag>,
     /// The commands of the program
-    sub_commands: Vec<Box<dyn CliCommand<'a>>>,
+    pub(crate) sub_commands: Vec<Box<dyn CliCommand<'a>>>,
+    /// The entered flags of the program. The key is the name (long form) of the flag, the value is a tuple of the flag (index into the flags vec) and the store
+    pub(crate) entered_flags: BTreeMap<String, (usize, Store)>,
+    /// The unknown arguments. Always `Some` (but with a length of 0 if no unknown arguments) if `handle_unknown_args` is `true`
+    pub(crate) unknown_args: Option<Vec<String>>,
 }
 
 impl<'a> Cli<'a> {
-    /// Create a new command line interface
-    ///
-    /// Consider using `Cli::new_with_capacity` for custom capacity when writing a program with
-    /// a large number of commands for fine grained control
+    /// Create a new command line interface via the builder
     ///
     /// # Arguments
     ///
-    /// * `name` - The name of the program
-    ///
-    /// # Notes
-    ///
-    /// The default capacity is 5 bytes for the version string (`1.2.3` is 5 ASCII characters and
-    /// thus 5 bytes), 255 bytes for the about string and 16 elements for the subcommand, flags, and
-    /// options vector respectively.
-    /// These values are a best effort guess to cover most use cases and minimize allocations
-    pub fn new(name: &str) -> Self {
-        let (ver_cap, about_cap) = (5, 255);
-        let (flag_cap, option_cap, cmd_cap) = (16, 16, 16);
-        Cli::new_with_capacity(name, ver_cap, about_cap, flag_cap, option_cap, cmd_cap)
-    }
-    /// Create a new command line interface with a custom capacity
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - The name of the program
-    /// * `ver_cap` - The capacity of the version string (`1.2.3` is 5 ASCII characters)
-    /// * `about_cap` - The capacity of the about string
-    /// * `flag_cap` - The capacity of the flag vector
-    /// * `option_cap` - The capacity of the option vector
-    /// * `cmd_cap` - The capacity of the command vector
-    pub fn new_with_capacity(
-        name: &str,
-        ver_cap: usize,
-        about_cap: usize,
-        flag_cap: usize,
-        option_cap: usize,
-        cmd_cap: usize,
-    ) -> Self {
-        Cli {
-            name: name.to_string(),
-            version: String::with_capacity(ver_cap),
-            about: String::with_capacity(about_cap),
-            flags: Vec::with_capacity(flag_cap),
-            options: Vec::with_capacity(option_cap),
-            sub_commands: Vec::with_capacity(cmd_cap),
-        }
-    }
-    /// Set the name of the program
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - The name of the program
-    ///
-    /// # Notes
-    ///
-    /// This will overwrite the name of the program.
-    /// In general the name is already set when using `Cli::new`
-    pub fn set_name(&mut self, name: &str) {
-        self.name = name.to_string();
-    }
-    /// Get the name of the program
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-    /// Set the version of the program
-    ///
-    /// # Arguments
-    ///
-    /// * `version` - The version of the program; e.g. `1.2.3`
-    pub fn set_version(&mut self, version: &str) {
-        self.version = version.to_string();
-    }
-    /// Get the version of the program
-    pub fn version(&self) -> &str {
-        &self.version
-    }
-    /// Add a Flag command
-    pub fn flag(&mut self, flag_char: char, name: &str, about: &str) {}
-    /// Check if a flag is set
-    ///
-    /// # Arguments
-    ///
-    /// * `flag_char` - The flag character
+    /// * `name` - The name of the program. May contain no whitespace and may not be empty
     ///
     /// # Returns
     ///
-    /// True if the flag is set
-    /// False if the flag is not set
-    pub fn get_flag(&self, flag_char: char) -> bool {}
-    /// Add a Option command
-    pub fn option(&mut self, flag_char: char, name: &str, about: &str, default: &str) {}
-    /// Get the default value of an option
-    pub fn get_option(&self, flag_char: char) -> Option<String> {}
-    /// Add a Command command
-    pub fn subcommand(&mut self, cmd: Box<dyn CliCommand<'a>>) {
-        self.sub_commands.push(cmd);
-    }
-    /// Execute and parse the command line arguments
-    pub fn execute(&self) {
-        for args in parsed_args_vec() {
-            for cmd in &self.sub_commands {
-                cmd.execute(&args);
-            }
-        }
-    }
-    /// Add the help command, using the -h flag or the --help option
-    pub fn help_text(&self) {}
-    /// Render the man page
+    /// * `CliBuilder`
     ///
-    /// # Returns
+    /// # Example
+    /// ```
+    /// use eshu::Cli;
     ///
-    /// A ROFF formatted string
-    pub fn render_man_page(&self) -> RoffString {
-        todo!(
-            "
-        - render contents of man page in ROFF format, return finished, persistable string.
-        - Add some kind of further reading on where to store / register the man page for the user"
-        )
+    /// let cli = Cli::new("my-cli");
+    /// ```
+    pub fn new<S: Into<String>>(name: S) -> CliBuilder<'a> {
+        CliBuilder::new(name)
     }
 }
 
-pub type RoffString = String;
+pub struct CliBuilder<'a> {
+    pub(crate) name: String,
+    pub(crate) version: Option<String>,
+    pub(crate) about: String,
+    pub(crate) flags: Vec<CliFlag>,
+    pub(crate) sub_commands: Vec<Box<dyn CliCommand<'a>>>,
+    pub(crate) handle_unknown_args: bool,
+}
 
-impl Default for Cli<'_> {
-    fn default() -> Self {
-        // A cheeky bit of self promotion if name is not set later on :-)
-        Cli::new("Default Name of a Eshu powered Cli Program")
+impl<'a> CliBuilder<'a> {
+    /// Create a new command line interface via the builder
+    /// Consider calling via `Cli::new`
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the program. May contain no whitespace and may not be empty
+    pub fn new<S: Into<String>>(name: S) -> CliBuilder<'a> {
+        CliBuilder {
+            name: name.into(),
+            version: None,
+            about: String::new(),
+            flags: Vec::new(),
+            sub_commands: Vec::new(),
+            handle_unknown_args: false,
+        }
+    }
+    /// Handle unknown arguments yourself
+    ///
+    /// Default behavior is to print an error message.
+    /// Useful if you want to parse the arguments yourself in a different way
+    pub fn handle_unknown_args(mut self) -> Self {
+        self.handle_unknown_args = true;
+        self
+    }
+    /// Add a flag to the program
+    ///
+    /// # Arguments
+    ///
+    /// * `flag` - The flag to add
+    ///
+    /// # Returns
+    ///
+    /// * `CliBuilder`
+    pub fn add_flag(mut self, flag: CliFlag) -> Self {
+        self.flags.push(flag);
+        self
+    }
+    /// Add a command to the program
+    /// This is used to add subcommands (e.g. `git commit`)
+    ///
+    /// # Arguments
+    ///
+    /// * `command` - The command to add
+    ///
+    /// # Returns
+    ///
+    /// * `CliBuilder`
+    pub fn add_command(mut self, command: Box<dyn CliCommand<'a>>) -> Self {
+        self.sub_commands.push(command);
+        self
+    }
+    /// Set the version of the program
+    /// It is recommended to use the `env!("CARGO_PKG_VERSION")` macro
+    ///
+    /// # Arguments
+    ///
+    /// * `version` - The version of the program. May not be empty
+    ///
+    /// # Returns
+    ///
+    /// * `CliBuilder`
+    ///
+    /// # Example
+    /// ```
+    /// use eshu::Cli;
+    ///
+    /// let cli = Cli::new("my-cli")
+    ///     .with_version(env!("CARGO_PKG_VERSION"))
+    ///     .build();
+    /// assert!(cli.is_err()); // Not all required fields are set
+    /// ```
+    pub fn with_version(mut self, version: &str) -> Self {
+        self.version = Some(version.to_string());
+        self
+    }
+    /// Set the about text of the program
+    ///
+    /// # Arguments
+    ///
+    /// * `about` - The about text of the program
+    ///
+    /// # Returns
+    ///
+    /// * `CliBuilder`
+    ///
+    /// # Example
+    /// ```
+    /// use eshu::Cli;
+    ///
+    /// let cli = Cli::new("my-cli")
+    ///     .with_about("My CLI with special features")
+    ///     .build();
+    /// assert!(cli.is_err()); // Not all required fields are set
+    /// ```
+    pub fn with_about(mut self, about: &str) -> Self {
+        self.about = about.to_string();
+        self
+    }
+    /// Build the command line interface, validate its fields and parse the command line arguments
+    /// This will return an error if the name is invalid, the version is empty, or the about is empty
+    ///
+    /// Will return the `Cli` struct otherwise. This can be queried with
+    /// `Cli::flag_entered("flag_name")`, see the `Cli` struct for more information
+    ///
+    /// # Returns
+    ///
+    /// * `EshuResult<Cli>`
+    pub fn parse(self) -> EshuResult<Cli<'a>> {
+        parse_args(self)
+    }
+    pub(crate) fn validate_self(&self) -> EshuResult<()> {
+        if contains_whitespace(&self.name) {
+            return Err(EshuError::InvalidName(
+                "Name must not contain whitespace".to_string(),
+            ));
+        }
+        if self.name.is_empty() {
+            return Err(EshuError::EmptyString("Name must not be empty".to_string()));
+        }
+        if self.version.is_none() {
+            return Err(EshuError::EmptyString(
+                "Version must not be empty".to_string(),
+            ));
+        }
+        if self.flags.is_empty() && self.sub_commands.is_empty() {
+            return Err(EshuError::NoFlagsOrCommands);
+        }
+        Ok(())
     }
 }

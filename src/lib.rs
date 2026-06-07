@@ -26,12 +26,12 @@
     reason = "Ignored warnings"
 )]
 
+mod arg_parser;
 mod cli;
 mod cli_cmd;
 mod error;
-mod parsed_args;
+mod utils;
 
 pub use cli::Cli;
 pub use cli_cmd::*;
 pub use error::EshuError;
-pub use parsed_args::ParsedArgs;
