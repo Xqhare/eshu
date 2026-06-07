@@ -79,13 +79,46 @@ impl<'a> Cli<'a> {
     }
 
     pub(crate) fn print_help(&self) {
+        let header = format!("{}, Version: {}\n{}\n", self.name, self.version, self.about);
+        let body = {
+            let mut body = "All available flags:\n".to_string();
+            for flag in &self.flags {
+                let mut flag_str = "\t".to_string();
+                if flag.flag_char.is_some() {
+                    flag_str = format!("{} -{} \t", flag_str, flag.flag_char.unwrap());
+                } else {
+                    flag_str = format!("{}\t\t", flag_str);
+                }
+                flag_str.push_str(&flag.long_flag);
+                flag_str.push_str("\t");
+                flag_str.push_str("\t");
+                flag_str.push_str(&flag.short_about);
+                flag_str.push_str("\n");
+                flag_str.push_str(&flag.long_about);
+                body.push_str(&flag_str);
+            }
+            if self.sub_commands.len() > 0 {
+                body.push_str("\n");
+                body.push_str("\n");
+                body.push_str("All available commands:\n");
+            }
+            for command in &self.sub_commands {
+                body.push_str(&format!("\t{}\n", command.name()));
+                body.push_str(&format!(
+                    "{}\n{}\n",
+                    command.short_about(),
+                    command.long_about()
+                ));
+            }
+            body
+        };
         let footer = format!(
             "This CLI experience is provided by Eshu, version {}. For more information, visit {}",
             env!("CARGO_PKG_VERSION"),
             env!("CARGO_PKG_HOMEPAGE")
         );
-        let final_string = format!("{}\n\n{}\n\n{}", header, body, footer);
-        todo!("create help message & print it")
+        let final_string = format!("{}\n\n\n\n{}\n\n\n\n{}", header, body, footer);
+        println!("{}", final_string);
     }
 
     pub(crate) fn print_version(&self) {
