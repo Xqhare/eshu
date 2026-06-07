@@ -55,7 +55,10 @@ pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
                 }
             }
             State::Group => {
-                todo!("ensure that `-C=Value` works here. Will end up here in any case")
+                let grouped_flags = parse_grouped_flags(arg, &cli_builder);
+                for (long_flag, (index, store)) in grouped_flags {
+                    insert_long_flag(&mut entered_flags, long_flag, index, store, &cli_builder)
+                }
             }
             State::Positional => {
                 if !parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec()) {
@@ -87,10 +90,13 @@ pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
     })
 }
 
-fn parse_grouped_flags(arg: &str, cli_builder: &CliBuilder) -> Option<(String, (usize, Store))> {
+fn parse_grouped_flags(arg: &str, cli_builder: &CliBuilder) -> Vec<(String, (usize, Store))> {
     let mut value = None;
     let mut storing: Vec<char> = Vec::new();
     for (i, c) in arg.char_indices() {
+        if i == 0 && c == '-' {
+            continue;
+        }
         if c == '=' {
             value = Some(arg[i + 1..].to_string());
             break;
@@ -101,27 +107,56 @@ fn parse_grouped_flags(arg: &str, cli_builder: &CliBuilder) -> Option<(String, (
             write_err_and_exit(&format!("Usage error: Flag must be a-z/A-Z. Got: {}", arg));
         }
     }
-    if let Some(val) = value {
-        // Can this ever be hit?
-        debug_assert!(storing.len() > 0);
-        let last_flag = storing.last().unwrap();
-        let flag_name = {
-            let mut tmp_out = "";
-            for flag in cli_builder.flags.iter() {
-                if flag.flag_char == Some(*last_flag) {
-                    tmp_out = &flag.long_flag;
+
+    let mut out: Vec<(String, (usize, Store))> = Vec::new();
+
+    for (index, c) in storing.iter().enumerate() {
+        for (i, flag) in cli_builder.flags.iter().enumerate() {
+            if flag.flag_char == Some(*c) {
+                if index == storing.len() - 1 {
+                    if let Some(value) = value.clone() {
+                        if flag.store_type.is_none() {
+                            write_err_and_exit(&format!(
+                                "Usage error: Flag {} does not take a value. Eshu found the following value passed to it: {}",
+                                flag.long_flag, value
+                            ));
+                        }
+                        match flag.store_type.unwrap() {
+                            StoreType::Value => {
+                                out.push((flag.long_flag.clone(), (i, Store::Value(vec![value]))))
+                            }
+                            StoreType::KeyValue => {
+                                let split = value.split_once('=');
+                                if split.is_none() {
+                                    write_err_and_exit(&format!(
+                                        "Usage error: Expected key=value, got: {}",
+                                        value
+                                    ));
+                                }
+                                let (k, v) = split.unwrap();
+                                out.push((
+                                    flag.long_flag.clone(),
+                                    (
+                                        i,
+                                        Store::KeyValue(BTreeMap::from([(
+                                            k.to_string(),
+                                            v.to_string(),
+                                        )])),
+                                    ),
+                                ))
+                            }
+                        }
+                    } else {
+                        out.push((flag.long_flag.clone(), (i, Store::Exists)));
+                    }
+                } else {
+                    out.push((flag.long_flag.clone(), (i, Store::Exists)));
                 }
             }
-            tmp_out
-        };
-        if flag_name == "" {
-            write_err_and_exit(&format!(
-                "Usage error: Flag '{}' not found!\nGot value '{}' from '{}'. No such short flag defined.",
-                last_flag, val, arg
-            ));
         }
     }
-    todo!(())
+
+    out
 }
 
 fn insert_long_flag(
