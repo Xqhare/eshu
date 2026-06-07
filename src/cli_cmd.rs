@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fmt::Debug};
+use std::fmt::Debug;
 
 use crate::{
     EshuError,
@@ -48,9 +48,11 @@ pub trait CliCommand<'c> {
 ///
 /// * `Optional` - No value is required with the flag, but it may be passed with one
 /// * `Required` - A value is required with the flag
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum StoreKind {
+    /// A value is optional
     Optional,
+    /// A value is required
     Required,
 }
 
@@ -58,9 +60,11 @@ pub enum StoreKind {
 ///
 /// * `Value` - A value (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed values.)
 /// * `KeyValue` - A key-value pair (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed key-value pairs.)
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum StoreType {
+    /// A value
     Value,
+    /// A key-value pair
     KeyValue,
 }
 
@@ -77,7 +81,7 @@ pub enum StoreType {
 /// If a flag is detached, the calling syntax will be `--flag-name value`.
 /// If the flag has a required store, the calling syntax will be `--flag-name value`, otherwise the calling syntax will be `--flag-name [value]`.
 /// Please note, this also allows `--flag-name "a value with spaces"`, which is not possible with an attached flag (blame POSIX).
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum StoreSyntax {
     /// Attached to the flag; `--flag-name=value` or `--flag-name=key=value`
     Attached,
@@ -107,8 +111,6 @@ pub struct CliFlag {
     pub(crate) required_store: bool,
     /// Does the flag accept passed arguments
     pub(crate) storing: bool,
-    /// The kind of the store (Optional or Required)
-    pub(crate) store_kind: Option<StoreKind>,
     /// The type of the store (Value or KeyValue)
     pub(crate) store_type: Option<StoreType>,
     /// The syntax of the store (Attached or Detached)
@@ -151,7 +153,6 @@ impl CliFlag {
     /// * `long_about` - The long about or help text for the flag. (Will be always used together with `short_about` if used at all).
     /// * `required_store` - Does the flag require passed arguments (If set to true, `storing` must also be set to true).
     /// * `storing` - Does the flag accept passed arguments (Only setting this to true means that the flag accepts optional arguments).
-    /// * `store_kind` - The kind of the store (Optional or Required). Only relevant if `storing` is set to true.
     /// * `store_type` - The type of the store (Value or KeyValue). Only relevant if `storing` is set to true.
     /// * `store_syntax` - The syntax of the store (Attached or Detached). Only relevant if `storing` is set to true.
     ///
@@ -171,7 +172,6 @@ impl CliFlag {
     ///     "long about".to_string(),
     ///     false,
     ///     true,
-    ///     StoreKind::Optional,
     ///     StoreType::Value,
     ///     StoreSyntax::Attached
     /// );
@@ -184,7 +184,6 @@ impl CliFlag {
         long_about: String,
         required_store: bool,
         storing: bool,
-        store_kind: Option<StoreKind>,
         store_type: Option<StoreType>,
         store_syntax: Option<StoreSyntax>,
     ) -> EshuResult<CliFlag> {
@@ -215,7 +214,7 @@ impl CliFlag {
                 "Flag name must not contain whitespace".to_string(),
             ));
         }
-        if storing && (store_syntax.is_none() || store_type.is_none() || store_kind.is_none()) {
+        if storing && (store_syntax.is_none() || store_type.is_none()) {
             return Err(EshuError::Storage(
                     "Flags that accept arguments must have a store type, store kind and store syntax set".to_string(),
                 ));
@@ -227,7 +226,6 @@ impl CliFlag {
             long_about,
             required_store,
             storing,
-            store_kind,
             store_type,
             store_syntax,
         })
@@ -251,8 +249,6 @@ pub struct CliFlagBuilder {
     required_store: bool,
     /// Does the flag accept passed arguments
     storing: bool,
-    /// The kind of the store
-    store_kind: Option<StoreKind>,
     /// The type of the store
     store_type: Option<StoreType>,
     /// The syntax of the store
@@ -285,7 +281,6 @@ impl CliFlagBuilder {
             long_about: String::new(),
             required_store: false,
             storing: false,
-            store_kind: None,
             store_type: None,
             store_syntax: None,
         }
@@ -453,9 +448,6 @@ impl CliFlagBuilder {
     /// * `store_type` - The store type of the flag.
     ///     - `StoreType::Value` - The flag accepts a single value.
     ///     - `StoreType::KeyValue` - The flag accepts a key-value pair.
-    /// * `store_kind` - The store kind of the flag.
-    ///     - `StoreKind::Optional` - The flag is optional.
-    ///     - `StoreKind::Required` - The flag is required.
     /// * `store_syntax` - The store syntax of the flag.
     ///     - `StoreSyntax::Attached` - The flag is attached to the command. (Between the flag and
     ///     value must be an equal sign `=`)
@@ -472,18 +464,16 @@ impl CliFlagBuilder {
     ///
     /// let flag = CliFlag::new("flag-name")
     ///     .with_storing()
-    ///     .with_store(StoreType::Value, StoreKind::Required, StoreSyntax::Attached)
+    ///     .with_store(StoreType::Value, StoreSyntax::Attached)
     ///     .build(); // build ensures the entire flag built is valid (missing about text here)
     /// assert!(flag.is_err());
     /// ```
     pub fn with_store(
         mut self,
         store_type: StoreType,
-        store_kind: StoreKind,
         store_syntax: StoreSyntax,
     ) -> CliFlagBuilder {
         self.store_type = Some(store_type);
-        self.store_kind = Some(store_kind);
         self.store_syntax = Some(store_syntax);
         // Doc explicitly states that calling `with_storing` is required;
         // Still set this to true to be nice, developer intent is clear.
@@ -539,11 +529,7 @@ impl CliFlagBuilder {
                 "Short and long about must not be empty".to_string(),
             ));
         }
-        if self.storing
-            && (self.store_syntax.is_none()
-                || self.store_type.is_none()
-                || self.store_kind.is_none())
-        {
+        if self.storing && (self.store_syntax.is_none() || self.store_type.is_none()) {
             return Err(EshuError::Storage(
                     "Flags that accept arguments must have a store type, store kind and store syntax set".to_string(),
                 ));
@@ -555,7 +541,6 @@ impl CliFlagBuilder {
             long_about: self.long_about,
             required_store: self.required_store,
             storing: self.storing,
-            store_kind: self.store_kind,
             store_type: self.store_type,
             store_syntax: self.store_syntax,
         })

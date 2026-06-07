@@ -14,7 +14,7 @@ pub fn contains_whitespace(s: &str) -> bool {
 }
 
 pub fn is_positional(arg: &str) -> bool {
-    !starts_with_dash(arg) && !contains_whitespace(arg)
+    !starts_with_dash(arg)
 }
 
 /// Get the arguments passed to the program
@@ -49,4 +49,55 @@ pub enum Store {
     Value(Vec<String>),
     /// These key-value pairs were passed in
     KeyValue(BTreeMap<String, String>),
+}
+
+impl Store {
+    pub fn exists(&self) -> bool {
+        match self {
+            Store::Exists => true,
+            _ => false,
+        }
+    }
+    pub fn is_value(&self) -> bool {
+        match self {
+            Store::Value(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_key_value(&self) -> bool {
+        match self {
+            Store::KeyValue(_) => true,
+            _ => false,
+        }
+    }
+    pub fn as_value(&self) -> Option<&Vec<String>> {
+        match self {
+            Store::Value(val) => Some(val),
+            _ => None,
+        }
+    }
+    pub fn as_mut_value(&mut self) -> Option<&mut Vec<String>> {
+        match self {
+            Store::Value(val) => Some(val),
+            _ => None,
+        }
+    }
+    pub fn as_key_value(&self) -> Option<&BTreeMap<String, String>> {
+        match self {
+            Store::KeyValue(val) => Some(val),
+            _ => None,
+        }
+    }
+    pub fn as_mut_key_value(&mut self) -> Option<&mut BTreeMap<String, String>> {
+        match self {
+            Store::KeyValue(val) => Some(val),
+            _ => None,
+        }
+    }
+}
+
+/// Write the message into stderr and exit
+pub fn write_err_and_exit(msg: &str) {
+    eprintln!("{}", msg);
+    std::process::exit(1);
 }

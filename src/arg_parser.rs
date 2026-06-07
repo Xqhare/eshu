@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    Cli,
+    Cli, CliFlag, StoreSyntax, StoreType,
     cli::CliBuilder,
     error::EshuResult,
-    utils::{Store, get_params_make_args, starts_with_dash},
+    utils::{Store, get_params_make_args, is_positional, starts_with_dash, write_err_and_exit},
 };
 
 pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
@@ -14,8 +14,10 @@ pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
     let mut unknown_args: Vec<String> = Vec::new();
     let params = get_params_make_args();
     let mut args = params.iter().peekable();
+    let mut params_index = 0;
 
     while let Some(arg) = args.next() {
+        params_index += 1;
         if unknown_args.len() > 0 && !cli_builder.handle_unknown_args {
             break;
         }
@@ -37,17 +39,28 @@ pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
         match state {
             State::ShortFlag => match parse_short_flag(arg, &cli_builder) {
                 Some((long_flag, (index, store))) => {
-                    entered_flags.insert(long_flag, (index, store));
+                    // Already set flag, persist any values also set
+                    if !entered_flags.contains_key(&long_flag) {
+                        entered_flags.insert(long_flag, (index, store));
+                    }
                 }
                 None => unknown_args.push(arg.to_string()),
             },
-            State::LongFlag => {}
-            State::Group => {}
-            State::Positional => {
-                if is_subcommand(arg, &cli_builder) {
-                    todo!("Parse subcommand (dont forget partial matching if unique)");
+            State::LongFlag => {
+                match parse_long_flag(arg, args.peek().map(|s| s.as_str()), &cli_builder) {
+                    Some((long_flag, (index, store))) => {
+                        insert_long_flag(&mut entered_flags, long_flag, index, store, &cli_builder)
+                    }
+                    None => unknown_args.push(arg.to_string()),
                 }
-                unknown_args.push(arg.to_string())
+            }
+            State::Group => {
+                todo!("ensure that `-C=Value` works here. Will end up here in any case")
+            }
+            State::Positional => {
+                if !parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec()) {
+                    unknown_args.push(arg.to_string())
+                }
             }
         }
     }
@@ -55,7 +68,12 @@ pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
     let unknown_args: Option<Vec<String>> = if cli_builder.handle_unknown_args {
         Some(unknown_args)
     } else {
-        todo!("Print error message to user & exit");
+        write_err_and_exit(&format!(
+            "Usage error: Unknown argument(s): {}",
+            unknown_args.join("; ")
+        ));
+        // Program will exit, but compiler doesn't know
+        None
     };
 
     Ok(Cli {
@@ -69,11 +87,183 @@ pub fn parse_args(cli_builder: CliBuilder) -> EshuResult<Cli> {
     })
 }
 
-fn is_subcommand(arg: &str, cli: &CliBuilder) -> bool {
-    for subcommand in cli.sub_commands.iter() {
-        if subcommand.name() == arg {
-            return true;
+fn parse_grouped_flags(arg: &str, cli_builder: &CliBuilder) -> Option<(String, (usize, Store))> {
+    let mut value = None;
+    let mut storing: Vec<char> = Vec::new();
+    for (i, c) in arg.char_indices() {
+        if c == '=' {
+            value = Some(arg[i + 1..].to_string());
+            break;
         }
+        if c.is_ascii_alphabetic() {
+            storing.push(c);
+        } else {
+            write_err_and_exit(&format!("Usage error: Flag must be a-z/A-Z. Got: {}", arg));
+        }
+    }
+    if let Some(val) = value {
+        // Can this ever be hit?
+        debug_assert!(storing.len() > 0);
+        let last_flag = storing.last().unwrap();
+        let flag_name = {
+            let mut tmp_out = "";
+            for flag in cli_builder.flags.iter() {
+                if flag.flag_char == Some(*last_flag) {
+                    tmp_out = &flag.long_flag;
+                }
+            }
+            tmp_out
+        };
+        if flag_name == "" {
+            write_err_and_exit(&format!(
+                "Usage error: Flag '{}' not found!\nGot value '{}' from '{}'. No such short flag defined.",
+                last_flag, val, arg
+            ));
+        }
+    }
+    todo!(())
+}
+
+fn insert_long_flag(
+    entered_flags: &mut BTreeMap<String, (usize, Store)>,
+    long_flag: String,
+    index: usize,
+    store: Store,
+    cli_builder: &CliBuilder,
+) {
+    if entered_flags.contains_key(&long_flag) {
+        let flag_store = entered_flags.get_mut(&long_flag).expect("Key exists");
+        match &cli_builder.flags[index]
+            .store_type
+            .expect("Store type not set")
+        {
+            StoreType::Value => {
+                let inner_store = flag_store.1.as_mut_value().expect("Must be value");
+                let to_store = store.as_value().expect("Must be value");
+                for val in to_store {
+                    inner_store.push(val.to_string());
+                }
+            }
+            StoreType::KeyValue => {
+                let inner_store = flag_store.1.as_mut_key_value().expect("Must be key value");
+                let to_store = store.as_key_value().expect("Must be key value");
+                for (key, val) in to_store {
+                    inner_store.insert(key.to_string(), val.to_string());
+                }
+            }
+        }
+    } else {
+        entered_flags.insert(long_flag, (index, store));
+    }
+}
+
+fn parse_long_flag(
+    arg: &str,
+    next_arg: Option<&str>,
+    cli: &CliBuilder,
+) -> Option<(String, (usize, Store))> {
+    let mut partials: Vec<(&str, usize)> = Vec::new();
+    for (index, flag) in cli.flags.iter().enumerate() {
+        if flag.long_flag.starts_with(arg) {
+            if flag.long_flag.len() > arg.len() {
+                partials.push((&flag.long_flag, index));
+            } else {
+                if flag.storing {
+                    return Some(handle_store(arg, index, flag, next_arg));
+                } else {
+                    return Some((flag.long_flag.clone(), (index, Store::Exists)));
+                }
+            }
+        }
+    }
+    if partials.len() == 1 {
+        let partial = &cli.flags[partials[0].1];
+        if partial.storing {
+            return Some(handle_store(arg, partials[0].1, &partial, next_arg));
+        } else {
+            return Some((partial.long_flag.clone(), (partials[0].1, Store::Exists)));
+        }
+    }
+    None
+}
+
+fn handle_store(
+    arg: &str,
+    index: usize,
+    cli_flag: &CliFlag,
+    next_arg: Option<&str>,
+) -> (String, (usize, Store)) {
+    let mut store = Store::Exists;
+    let mut value = None;
+
+    match &cli_flag.store_syntax.expect("Store syntax not set") {
+        StoreSyntax::Attached => {
+            if let Some((_, val)) = arg.split_once('=') {
+                value = Some(val);
+            }
+        }
+        StoreSyntax::Detached => {
+            if let Some(next_argument) = next_arg
+                && is_positional(next_argument)
+            {
+                value = Some(next_argument);
+            }
+        }
+    }
+
+    if cli_flag.required_store && value.is_none() {
+        let req_syntax = match &cli_flag.store_syntax.expect("Store syntax not set") {
+            StoreSyntax::Attached => &format!("--{}=VALUE", cli_flag.long_flag),
+            StoreSyntax::Detached => &format!("--{} VALUE", cli_flag.long_flag),
+        };
+        write_err_and_exit(&format!(
+            "Usage error: Flag '--{}' requires an argument. Please provide one via the following syntax: '{}'",
+            cli_flag.long_flag, req_syntax
+        ));
+    }
+
+    if value.is_some() {
+        match &cli_flag.store_type.expect("Store type not set") {
+            StoreType::Value => {
+                store = Store::Value(vec![value.unwrap().to_string()]);
+            }
+            StoreType::KeyValue => {
+                let (key, val) = value.unwrap().split_once('=').expect("Must be key=value");
+                store = Store::KeyValue(BTreeMap::from([(key.to_string(), val.to_string())]));
+            }
+        }
+    }
+
+    (cli_flag.long_flag.clone(), (index, store))
+}
+
+/// Parse a subcommand
+/// Also checks for partial matches
+///
+/// # Arguments
+///
+/// * `arg` - The argument to parse
+/// * `cli` - The cli builder
+/// * `args` - All arguments passed to the program to the immediate right of the subcommand
+///
+/// # Returns
+///
+/// * `bool` - Whether or not the subcommand was found. True if found
+fn parse_subcommand(arg: &str, cli: &CliBuilder, args: &Vec<String>) -> bool {
+    let mut partials = Vec::new();
+    for subcommand in cli.sub_commands.iter() {
+        if subcommand.name().starts_with(arg) {
+            if subcommand.name().len() > arg.len() {
+                partials.push(subcommand);
+            } else {
+                subcommand.execute(args);
+                return true;
+            }
+        }
+    }
+    if partials.len() == 1 {
+        partials[0].execute(args);
+        return true;
     }
     false
 }
