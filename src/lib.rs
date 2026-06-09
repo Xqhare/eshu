@@ -30,6 +30,7 @@
 // TODO: Add tests
 // TODO: Add examples
 // TODO: Make clippy happy
+// TODO: Doc
 // TODO: Make safe:
 //      TODO: Sweep for expects, write_err_and_exit, unwrap
 //      TODO: Make parse bubble up errors
