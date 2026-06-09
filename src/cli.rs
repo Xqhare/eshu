@@ -5,7 +5,7 @@ use crate::{
     arg_parser::parse_args,
     cli_cmd::{CliCommand, CliFlag},
     error::EshuResult,
-    utils::{RoffString, Store, contains_whitespace},
+    utils::{RoffString, Store, contains_whitespace, get_params_make_args},
 };
 
 /// Generate a command line interface
@@ -256,7 +256,13 @@ impl<'a> CliBuilder<'a> {
     ///
     /// * `EshuResult<Cli>`
     pub fn parse(self) -> EshuResult<Cli<'a>> {
-        parse_args(self)
+        parse_args(self, get_params_make_args())
+    }
+    /// Internal function for testing
+    ///
+    /// Pass in the command line arguments as a vector to test the parsing
+    pub(crate) fn test_parse(self, params: Vec<String>) -> EshuResult<Cli<'a>> {
+        parse_args(self, params)
     }
     pub(crate) fn validate_self(&self) -> EshuResult<()> {
         if contains_whitespace(&self.name) {
