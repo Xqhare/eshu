@@ -32,13 +32,17 @@
 // TODO: Make clippy happy
 // TODO: Make safe:
 //      TODO: Sweep for expects, write_err_and_exit, unwrap
+//      TODO: Make parse bubble up errors
+//          TODO: provide the write_err_and_exit function for convenience.
+//          TODO: Keep errors easy to read and understand (make them more verbose; I would love to
+//          just throw them into write_err_and_exit)
 
 mod arg_parser;
 mod cli;
-mod cli_cmd;
+mod control;
 mod error;
 mod utils;
 
 pub use cli::Cli;
-pub use cli_cmd::*;
+pub use control::*;
 pub use error::EshuError;
