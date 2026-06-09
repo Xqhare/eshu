@@ -1,9 +1,11 @@
 use std::collections::BTreeMap;
 
+/// Check if a string starts with a dash `-`
 pub fn starts_with_dash(s: &str) -> bool {
     s.starts_with('-')
 }
 
+/// Check if a string contains whitespace
 pub fn contains_whitespace(s: &str) -> bool {
     for char in s.chars() {
         if char.is_whitespace() {
@@ -13,6 +15,9 @@ pub fn contains_whitespace(s: &str) -> bool {
     false
 }
 
+/// Check if an argument is a positional argument
+///
+/// A positional argument is an argument that does not start with a dash
 pub fn is_positional(arg: &str) -> bool {
     !starts_with_dash(arg)
 }
@@ -52,42 +57,51 @@ pub enum Store {
 }
 
 impl Store {
+    /// Check if the store exists
+    ///
+    /// If true, the flag was passed in and no value was provided
     pub fn exists(&self) -> bool {
         match self {
             Store::Exists => true,
             _ => false,
         }
     }
+    /// Check if the store is storing a value
     pub fn is_value(&self) -> bool {
         match self {
             Store::Value(_) => true,
             _ => false,
         }
     }
+    /// Check if the store is storing a key-value pair
     pub fn is_key_value(&self) -> bool {
         match self {
             Store::KeyValue(_) => true,
             _ => false,
         }
     }
+    /// Get the stored value
     pub fn as_value(&self) -> Option<&Vec<String>> {
         match self {
             Store::Value(val) => Some(val),
             _ => None,
         }
     }
+    /// Get the stored value as a mutable reference
     pub fn as_mut_value(&mut self) -> Option<&mut Vec<String>> {
         match self {
             Store::Value(val) => Some(val),
             _ => None,
         }
     }
+    /// Get the stored key-value pair
     pub fn as_key_value(&self) -> Option<&BTreeMap<String, String>> {
         match self {
             Store::KeyValue(val) => Some(val),
             _ => None,
         }
     }
+    /// Get the stored key-value pair as a mutable reference
     pub fn as_mut_key_value(&mut self) -> Option<&mut BTreeMap<String, String>> {
         match self {
             Store::KeyValue(val) => Some(val),
