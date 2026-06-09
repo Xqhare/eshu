@@ -17,6 +17,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
 
     let mut entered_flags: BTreeMap<String, (usize, Store)> = BTreeMap::new();
     let mut unknown_args: Vec<String> = Vec::new();
+    let mut stray_positional_args: Vec<String> = Vec::new();
     let mut args = params.iter().peekable();
     let mut params_index = 0;
 
@@ -82,10 +83,11 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
             }
             State::Positional => {
                 // TODO: Seems suboptimal. Should be able to parse subcommands & sub-flags here; Recursion??
+                // Seems like a large amount of work, pushed back, still needs to be done till 1.0.0
                 if parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec()) {
                     break;
                 } else {
-                    unknown_args.push(arg.to_string())
+                    stray_positional_args.push(arg.to_string())
                 }
             }
         }
@@ -112,6 +114,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
         sub_commands: cli_builder.sub_commands,
         entered_flags,
         unknown_args,
+        stray_positional_args,
     };
 
     if cli.is_flag_entered("help") {
