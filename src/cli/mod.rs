@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, os::fd::AsRawFd};
 
 use crate::{
     cli::builder::CliBuilder,
@@ -25,6 +25,8 @@ pub struct Cli<'a> {
     pub(crate) entered_flags: BTreeMap<String, (usize, Store)>,
     /// The unknown arguments. Always `Some` (but with a length of 0 if no unknown arguments) if `handle_unknown_args` is `true`
     pub(crate) unknown_args: Option<Vec<String>>,
+    /// Positional arguments without a corresponding flag
+    pub(crate) stray_positional_args: Vec<String>,
 }
 
 impl<'a> Cli<'a> {
@@ -46,6 +48,17 @@ impl<'a> Cli<'a> {
     /// ```
     pub fn new<S: Into<String>>(name: S) -> CliBuilder<'a> {
         CliBuilder::new(name)
+    }
+
+    /// Get the stray positional arguments
+    ///
+    /// Stray positional arguments are positional arguments without a corresponding flag.
+    ///
+    /// # Returns
+    ///
+    /// * `&Vec<String>`
+    pub fn get_stray_positional_args(&self) -> &Vec<String> {
+        &self.stray_positional_args
     }
 
     /// Check if a flag was entered
@@ -79,6 +92,7 @@ impl<'a> Cli<'a> {
     }
 
     pub(crate) fn print_help(&self) {
+        let (_, width) = athena::system::terminal_size(std::io::stdout().as_raw_fd()).unwrap();
         let header = format!("{}, Version: {}\n{}\n", self.name, self.version, self.about);
         let body = {
             let mut body = "All available flags:\n".to_string();

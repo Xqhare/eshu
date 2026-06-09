@@ -6,3 +6,6 @@ repository = "https://github.com/Xqhare/eshu"
 authors = ["Xqhare"]
 license = "MIT"
 
+[dependencies]
+athena = { git = "https://github.com/Xqhare/athena", features = ["system"] }
+
