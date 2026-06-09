@@ -88,12 +88,14 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
 
     let unknown_args: Option<Vec<String>> = if cli_builder.handle_unknown_args {
         Some(unknown_args)
-    } else {
+    } else if unknown_args.len() > 0 {
         write_err_and_exit(&format!(
             "Usage error: Unknown argument(s): {}",
             unknown_args.join("; ")
         ));
         // Program will exit, but compiler doesn't know
+        None
+    } else {
         None
     };
 

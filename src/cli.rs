@@ -134,6 +134,7 @@ pub struct CliBuilder<'a> {
     pub(crate) flags: Vec<CliFlag>,
     pub(crate) sub_commands: Vec<Box<dyn CliCommand<'a>>>,
     pub(crate) handle_unknown_args: bool,
+    basic: bool,
 }
 
 impl<'a> CliBuilder<'a> {
@@ -161,7 +162,14 @@ impl<'a> CliBuilder<'a> {
             flags,
             sub_commands: Vec::new(),
             handle_unknown_args: false,
+            basic: false,
         }
+    }
+    /// Removes the requirement of having more flags than just the provided `help` and
+    /// `version` ones.
+    pub fn basic(mut self) -> Self {
+        self.basic = true;
+        self
     }
     /// Handle unknown arguments yourself
     ///
@@ -216,6 +224,7 @@ impl<'a> CliBuilder<'a> {
     /// let cli = Cli::new("my-cli")
     ///     .with_version(env!("CARGO_PKG_VERSION"))
     ///     .handle_unknown_args()
+    ///     .basic()
     ///     .parse();
     /// assert!(cli.is_ok());
     /// ```
@@ -246,7 +255,7 @@ impl<'a> CliBuilder<'a> {
         self.about = about.to_string();
         self
     }
-    /// Build the command line interface, validate its fields and parse the command line arguments
+    /// Build the command line interface, validate its fields and get & parse the command line arguments passed into the program
     /// This will return an error if the name is invalid, the version is empty, or the about is empty
     ///
     /// Will return the `Cli` struct otherwise. This can be queried with
@@ -258,11 +267,23 @@ impl<'a> CliBuilder<'a> {
     pub fn parse(self) -> EshuResult<Cli<'a>> {
         parse_args(self, get_params_make_args())
     }
-    /// Internal function for testing
+    /// Build the command line interface, validate its fields and parse the command line arguments
     ///
-    /// Pass in the command line arguments as a vector to test the parsing
-    pub(crate) fn test_parse(self, params: Vec<String>) -> EshuResult<Cli<'a>> {
-        parse_args(self, params)
+    /// Use this if you want to get the command line arguments yourself (`Eshu` uses `std::env::args_os()` and lossy converts them into `String`)
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - The command line arguments
+    ///
+    /// # Returns
+    ///
+    /// * `EshuResult<Cli>`
+    ///
+    /// # Note
+    ///
+    /// `Eshu` expects the very first element of the passed in `Vec<String>` to be the program name. This element is skipped and can be anything, it must be present however.
+    pub fn parse_custom(self, params: Vec<String>) -> EshuResult<Cli<'a>> {
+        parse_args(self, params.into_iter().skip(1).collect())
     }
     pub(crate) fn validate_self(&self) -> EshuResult<()> {
         if contains_whitespace(&self.name) {
@@ -278,7 +299,9 @@ impl<'a> CliBuilder<'a> {
                 "Version must not be empty".to_string(),
             ));
         }
-        if self.flags.is_empty() && self.sub_commands.is_empty() {
+        // `help` and `version` are GNU required; they are always present
+        // Having no other flags or commands seems like a developer error
+        if self.flags.len() == 2 && self.sub_commands.is_empty() && !self.basic {
             return Err(EshuError::NoFlagsOrCommands);
         }
         Ok(())

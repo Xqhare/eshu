@@ -498,7 +498,7 @@ impl CliFlagBuilder {
     ///     .build();
     /// assert!(flag.is_ok());
     /// ```
-    pub fn build(self) -> EshuResult<CliFlag> {
+    pub fn build(mut self) -> EshuResult<CliFlag> {
         if self.required_store && !self.storing {
             return Err(EshuError::Storage(
                 "Flags that require arguments must accept them".to_string(),
@@ -515,9 +515,15 @@ impl CliFlagBuilder {
             ));
         }
         if starts_with_dash(&self.long_flag) {
-            return Err(EshuError::InvalidName(
-                "Flag name must not start with a dash or double dash".to_string(),
-            ));
+            // Lets be nice, developer intent is clear; but only if -- not -
+            if let Some(removed_dashes) = self.long_flag.strip_prefix("--") {
+                self.long_flag = removed_dashes.to_string();
+            } else {
+                return Err(EshuError::InvalidName(format!(
+                    "Flag name must not start with a dash. Got: {}",
+                    self.long_flag
+                )));
+            }
         }
         if contains_whitespace(&self.long_flag) {
             return Err(EshuError::InvalidName(

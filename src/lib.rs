@@ -26,6 +26,13 @@
     reason = "Ignored warnings"
 )]
 
+// For 1.0.0:
+// TODO: Add tests
+// TODO: Add examples
+// TODO: Make clippy happy
+// TODO: Make safe:
+//      TODO: Sweep for expects, write_err_and_exit, unwrap
+
 mod arg_parser;
 mod cli;
 mod cli_cmd;
