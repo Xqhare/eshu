@@ -140,7 +140,7 @@ pub fn parse_long_flag(
     let mut partials: Vec<(&str, usize)> = Vec::new();
 
     for (index, flag) in cli.flags.iter().enumerate() {
-        if flag.long_flag.starts_with(arg) {
+        if arg.starts_with(&flag.long_flag) {
             if flag.long_flag.len() > arg.len() {
                 partials.push((&flag.long_flag, index));
             } else {
