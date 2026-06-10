@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::CliFlag;
+use crate::{Cli, CliFlag};
 
 impl Debug for dyn CliCommand<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -36,6 +36,6 @@ pub trait CliCommand<'c> {
     ///
     /// # Parameters
     ///
-    /// * `args` - All command line arguments immediately to the right of the subcommand
-    fn execute(&self, args: &Vec<String>);
+    /// * `cli` - The command line interface for the command. Get via `Cli::get_subcommand_cli`
+    fn execute(&self, cli: &Cli<'c>);
 }

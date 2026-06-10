@@ -2,14 +2,16 @@ use std::collections::BTreeMap;
 
 use crate::{
     Cli,
-    arg_parser::parser::{
-        insert_long_flag, parse_grouped_flags, parse_long_flag, parse_short_flag, parse_subcommand,
+    arg_parser::{
+        grouped::parse_grouped_flags,
+        parser::{insert_long_flag, parse_long_flag, parse_short_flag, parse_subcommand},
     },
     cli::builder::CliBuilder,
     error::EshuResult,
     utils::{Store, starts_with_dash, write_err_and_exit},
 };
 
+mod grouped;
 mod parser;
 
 pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cli> {
@@ -101,6 +103,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                     parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec())
                 {
                     sub_cmd_cli.insert(name, sub_cli);
+                    break;
                 } else {
                     stray_positional_args.push(arg.to_string())
                 }
@@ -140,6 +143,16 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
     if cli.is_flag_entered("version") {
         cli.print_version();
         std::process::exit(0);
+    }
+
+    if cli_builder.auto_execution {
+        for cmd in &cli.sub_cmd_cli {
+            for def_cmd in &cli.sub_commands {
+                if cmd.0 == def_cmd.name() {
+                    def_cmd.execute(cmd.1);
+                }
+            }
+        }
     }
 
     Ok(cli)

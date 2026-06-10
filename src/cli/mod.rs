@@ -1,12 +1,13 @@
 use std::{collections::BTreeMap, os::fd::AsRawFd};
 
 use crate::{
-    cli::builder::CliBuilder,
+    CliCommand, CliFlag,
+    cli::{builder::CliBuilder, help::help},
     utils::{RoffString, Store},
-    {CliCommand, CliFlag},
 };
 
 pub mod builder;
+mod help;
 
 /// Generate a command line interface
 #[derive(Debug)]
@@ -106,7 +107,7 @@ impl<'a> Cli<'a> {
     }
 
     pub(crate) fn print_help(&self) {
-        let (_, _width) = athena::system::terminal_size(std::io::stdout().as_raw_fd()).unwrap();
+        help(&self);
         let header = format!("{}, Version: {}\n{}\n", self.name, self.version, self.about);
         let body = {
             let mut body = "All available flags:\n".to_string();

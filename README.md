@@ -3,23 +3,36 @@
 TODO:
 
 - Consider ArgosCI integration
-- Consider needed dependencies in `Cargo.toml`
 
 A zero-dependency Rust library for building robust CLI tools with automatic help and man-page generation.
 
 It follows my "All code written by me or part of rust's standard library and libc" philosophy.
 You can learn more about that [here](https://blog.xqhare.net/posts/why_solve_problems/).
 
+## Roadmap
+
+- Rework help generation to use correctly use unicode characters for width, instead of assuming ASCII
+
+### Open Until Considered Stable
+
+- [ ] Man-page generation
+- [ ] Error handling refactoring
+- [ ] Doc
+    - [ ] Examples
+    - [ ] Readme
+- [ ] Tests
+
 ## Features
 
 - _**No dependencies**_: All code is written by me or part of std.
+- _**XffValue Integration**_: Easy casting of returned values into `XffValues`.
 
 ## Naming
 
 As with all my projects, `Eshu` is named after an ancient deity.
 Learn more about my naming scheme [here](https://blog.xqhare.net/posts/explaining_the_pantheon/).
 
-An East African divine spirit of communication and language, acting as a messenger between humans and the deities.
+`Eshu` is an East African divine spirit of communication and language, acting as a messenger between humans and the deities.
 
 ## Quick Reference
 

@@ -13,6 +13,7 @@ pub struct CliBuilder<'a> {
     pub(crate) sub_commands: Vec<Box<dyn CliCommand<'a>>>,
     pub(crate) handle_unknown_args: bool,
     basic: bool,
+    pub(crate) auto_execution: bool,
 }
 
 impl<'a> CliBuilder<'a> {
@@ -41,7 +42,17 @@ impl<'a> CliBuilder<'a> {
             sub_commands: Vec::new(),
             handle_unknown_args: false,
             basic: false,
+            auto_execution: true,
         }
+    }
+    /// Disables the auto execution of subcommands
+    ///
+    /// Disabling auto execution will require the user to manually call `CliCommand::execute`.
+    /// If enabled (default behavior), `CliCommand::execute` will be called automatically
+    /// called when the subcommand is encountered during parsing
+    pub fn without_auto_execution(mut self) -> Self {
+        self.auto_execution = false;
+        self
     }
     /// Removes the requirement of having more flags than just the provided `help` and
     /// `version` ones.
