@@ -58,17 +58,12 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
             next_arg = Some(&tmp_next_arg);
         }
         match state {
-            State::ShortFlag => {
-                match parse_short_flag(arg, &cli_builder, next_arg) {
-                    Some((long_flag, (index, store))) => {
-                        // Already set flag, persist any values also set
-                        if !entered_flags.contains_key(&long_flag) {
-                            entered_flags.insert(long_flag, (index, store));
-                        }
-                    }
-                    None => unknown_args.push(arg.to_string()),
+            State::ShortFlag => match parse_short_flag(arg, &cli_builder, next_arg) {
+                Some((long_flag, (index, store))) => {
+                    insert_long_flag(&mut entered_flags, long_flag, index, store, &cli_builder);
                 }
-            }
+                None => unknown_args.push(arg.to_string()),
+            },
             State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg) {
                 Some((long_flag, (index, store))) => {
                     insert_long_flag(&mut entered_flags, long_flag, index, store, &cli_builder)

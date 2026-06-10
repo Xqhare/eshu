@@ -6,8 +6,10 @@ use crate::{
     error::EshuResult,
     utils::{contains_whitespace, starts_with_dash},
 };
+
 /// Defines a flag
 /// Is used to parse command line arguments and hold metadata
+#[derive(Clone)]
 pub struct CliFlag {
     /// The, optional, short flag, e.g. `-f`
     /// May not contain a dash, `-`

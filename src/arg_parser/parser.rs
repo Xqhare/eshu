@@ -1,10 +1,87 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    CliFlag, StoreSyntax, StoreType,
+    Cli, CliFlag, StoreSyntax, StoreType,
     cli::builder::CliBuilder,
     utils::{Store, is_positional, write_err_and_exit},
 };
+
+#[test]
+fn grouped_flags_attached() {
+    let cli = CliBuilder::new("test")
+        .add_flag(
+            CliFlag::new("a-flag")
+                .with_about("test", "test")
+                .with_flag_char('a')
+                .build()
+                .unwrap(),
+        )
+        .add_flag(
+            CliFlag::new("b-flag")
+                .with_about("test", "test")
+                .with_flag_char('b')
+                .build()
+                .unwrap(),
+        )
+        .add_flag(
+            CliFlag::new("c-flag")
+                .with_about("test", "test")
+                .with_flag_char('c')
+                .build()
+                .unwrap(),
+        )
+        .add_flag(
+            CliFlag::new("storing-flag")
+                .with_about("test", "test")
+                .with_flag_char('s')
+                .with_required_store(StoreType::Value, StoreSyntax::Attached)
+                .build()
+                .unwrap(),
+        )
+        .add_flag(
+            CliFlag::new("optional-storing-flag")
+                .with_about("test", "test")
+                .with_flag_char('o')
+                .with_store(StoreType::Value, StoreSyntax::Attached)
+                .build()
+                .unwrap(),
+        )
+        .add_flag(
+            CliFlag::new("required-storing-flag")
+                .with_about("test", "test")
+                .with_flag_char('r')
+                .with_required_store(StoreType::Value, StoreSyntax::Attached)
+                .build()
+                .unwrap(),
+        );
+    let out = parse_grouped_flags("-abc", &cli, None);
+    assert_eq!(out.len(), 3);
+    let out = parse_grouped_flags("-abs=1", &cli, None);
+    assert_eq!(out.len(), 3);
+    let out = parse_grouped_flags("-abc", &cli, None);
+    assert_eq!(out.len(), 3);
+    let out = parse_grouped_flags("-ao=1", &cli, None);
+    assert_eq!(out.len(), 2);
+    let out = parse_grouped_flags("-ao", &cli, None);
+    assert_eq!(out.len(), 2);
+    let out = parse_grouped_flags("-ar=1", &cli, None);
+    assert_eq!(out.len(), 2);
+}
+
+#[test]
+fn single_flag_detached() {
+    let cli = CliBuilder::new("test").add_flag(
+        CliFlag::new("a-flag")
+            .with_about("test", "test")
+            .with_flag_char('a')
+            .with_required_store(StoreType::Value, StoreSyntax::Detached)
+            .build()
+            .unwrap(),
+    );
+    let out = parse_grouped_flags("-a", &cli, Some("1"));
+    assert_eq!(out.len(), 1);
+}
+
 pub fn parse_grouped_flags(
     arg: &str,
     cli_builder: &CliBuilder,
@@ -99,20 +176,32 @@ pub fn insert_long_flag(
 ) {
     if entered_flags.contains_key(&long_flag) {
         let flag_store = entered_flags.get_mut(&long_flag).expect("Key exists");
-        match &cli_builder.flags[index]
-            .store_type
-            .expect("Store type not set")
-        {
-            StoreType::Value => {
+        match &flag_store.1 {
+            Store::Exists => {
+                // Do nothing, flag already exists
+            }
+            Store::Value(_) => {
                 let inner_store = flag_store.1.as_mut_value().expect("Must be value");
-                let to_store = store.as_value().expect("Must be value");
+                let to_store = {
+                    match store {
+                        Store::Exists => Vec::new(),
+                        Store::Value(val) => val,
+                        _ => unreachable!("Must be value"),
+                    }
+                };
                 for val in to_store {
                     inner_store.push(val.to_string());
                 }
             }
-            StoreType::KeyValue => {
+            Store::KeyValue(_) => {
                 let inner_store = flag_store.1.as_mut_key_value().expect("Must be key value");
-                let to_store = store.as_key_value().expect("Must be key value");
+                let to_store = {
+                    match store {
+                        Store::Exists => BTreeMap::new(),
+                        Store::KeyValue(val) => val,
+                        _ => unreachable!("Must be key value"),
+                    }
+                };
                 for (key, val) in to_store {
                     inner_store.insert(key.to_string(), val.to_string());
                 }
@@ -227,23 +316,48 @@ fn handle_store(
 /// # Returns
 ///
 /// * `bool` - Whether or not the subcommand was found. True if found
-pub fn parse_subcommand(arg: &str, cli: &CliBuilder, args: &Vec<String>) -> bool {
+pub fn parse_subcommand<'a>(
+    arg: &str,
+    cli: &CliBuilder,
+    args: &Vec<String>,
+) -> (bool, Option<(String, Cli<'a>)>) {
     let mut partials = Vec::new();
+    let mut execute = None;
     for subcommand in cli.sub_commands.iter() {
         if subcommand.name().starts_with(arg) {
             if subcommand.name().len() > arg.len() {
                 partials.push(subcommand);
             } else {
-                subcommand.execute(args);
-                return true;
+                execute = Some(subcommand);
+                break;
             }
         }
     }
-    if partials.len() == 1 {
-        partials[0].execute(args);
-        return true;
+    if partials.len() == 1 && execute.is_none() {
+        execute = Some(partials[0]);
     }
-    false
+    if let Some(execute) = execute {
+        let mut inner_cli = Cli::new(execute.name())
+            .with_about(execute.short_about())
+            .with_version(
+                &cli.version
+                    .clone()
+                    .unwrap_or("0.0.0".to_string())
+                    .to_string(),
+            );
+        for flag in &execute.flags() {
+            inner_cli = inner_cli.add_flag(flag.clone())
+        }
+        for subcommand in &execute.subcommands() {
+            // TODO: Add subcommands, cloning is ok, but doesn't work
+            //inner_cli = inner_cli.add_command(subcommand.clone())
+        }
+        let inner_cli = inner_cli.parse_custom(args.clone()).expect("err");
+
+        (true, Some((execute.name().to_string(), inner_cli)))
+    } else {
+        (false, None)
+    }
 }
 
 /// Parse a short flag
