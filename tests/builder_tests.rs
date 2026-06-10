@@ -78,9 +78,7 @@ fn build_complete_flag() {
         .with_flag_char('a')
         .with_short_about("Testing text")
         .with_long_about("Long testing text \n lorem ipsum")
-        .with_storing()
-        .with_required_store()
-        .with_store(StoreType::Value, StoreSyntax::Attached)
+        .with_required_store(StoreType::Value, StoreSyntax::Attached)
         .build();
     assert!(flag.is_ok());
 }

@@ -109,6 +109,31 @@ impl CliFlagBuilder {
         self.long_flag = long_flag.to_string();
         self
     }
+    /// Change the about text
+    ///
+    /// # Parameters
+    ///
+    /// * `short_about` - The short about text
+    /// * `long_about` - The long about text
+    ///
+    /// # Returns
+    ///
+    /// * `CliFlagBuilder`
+    ///
+    /// # Example
+    /// ```
+    /// use eshu::CliFlag;
+    ///
+    /// let flag = CliFlag::new("flag-name")
+    ///     .with_about("short about", "long about")
+    ///     .build(); // build ensures the entire flag built is valid (about text is all provided here)
+    /// assert!(flag.is_ok());
+    /// ```
+    pub fn with_about(mut self, short_about: &str, long_about: &str) -> CliFlagBuilder {
+        self.short_about = short_about.to_string();
+        self.long_about = long_about.to_string();
+        self
+    }
     /// Change the short about text
     ///
     /// # Parameters
@@ -160,72 +185,6 @@ impl CliFlagBuilder {
     /// Calling this will also mark the flag as storing (see `with_storing`)
     /// Use this function if the flag requires arguments
     ///
-    /// # Note
-    ///
-    /// This function must be used together with `with_store`
-    ///
-    /// # Returns
-    ///
-    /// * `CliFlagBuilder`
-    ///
-    /// # Example
-    /// ```
-    /// use eshu::CliFlag;
-    ///
-    /// let flag = CliFlag::new("flag-name")
-    ///     .with_required_store()
-    ///     .build(); // build ensures the entire flag built is valid (missing about text here)
-    /// assert!(flag.is_err());
-    /// ```
-    pub fn with_required_store(mut self) -> CliFlagBuilder {
-        self.storing = true;
-        self.required_store = true;
-        self
-    }
-    /// Mark the flag as storing, meaning it accepts arguments (but does not require them)
-    /// If a flag is built by calling `with_required_store`, calling this function is superfluous.
-    /// Use this function if the flag accepts arguments optionally
-    ///
-    /// # Note
-    ///
-    /// This function must be used together with `with_store`
-    ///
-    /// # Returns
-    ///
-    /// * `CliFlagBuilder`
-    ///
-    /// # Example
-    /// ```
-    /// use eshu::CliFlag;
-    ///
-    /// let flag = CliFlag::new("flag-name")
-    ///     .with_storing()
-    ///     .build(); // build ensures the entire flag built is valid (missing about text here)
-    /// assert!(flag.is_err());
-    /// ```
-    pub fn with_storing(mut self) -> CliFlagBuilder {
-        self.storing = true;
-        self
-    }
-    /// Defines the store type, store kind and store syntax of the flag
-    /// Required if `storing` is set to true
-    /// Always use this function if the flag accepts arguments
-    ///
-    /// # Note
-    ///
-    /// This function must be used together with `with_storing` or `with_required_store`
-    ///
-    /// # Parameters
-    ///
-    /// * `store_type` - The store type of the flag.
-    ///     - `StoreType::Value` - The flag accepts a single value.
-    ///     - `StoreType::KeyValue` - The flag accepts a key-value pair.
-    /// * `store_syntax` - The store syntax of the flag.
-    ///     - `StoreSyntax::Attached` - The flag is attached to the command. (Between the flag and
-    ///     value must be an equal sign `=`)
-    ///     - `StoreSyntax::Detached` - The flag is detached from the command. (The value must be
-    ///     immediately to the right of the flag. Use this if you want the End-Of-Flags marker `--` to pass all following arguments as values into the store of this flag)
-    ///     
     /// # Returns
     ///
     /// * `CliFlagBuilder`
@@ -235,7 +194,34 @@ impl CliFlagBuilder {
     /// use eshu::{CliFlag, StoreType, StoreSyntax};
     ///
     /// let flag = CliFlag::new("flag-name")
-    ///     .with_storing()
+    ///     .with_required_store(StoreType::Value, StoreSyntax::Attached)
+    ///     .build(); // build ensures the entire flag built is valid (missing about text here)
+    /// assert!(flag.is_err());
+    /// ```
+    pub fn with_required_store(
+        mut self,
+        store_type: StoreType,
+        store_syntax: StoreSyntax,
+    ) -> CliFlagBuilder {
+        self.storing = true;
+        self.required_store = true;
+        self.store_type = Some(store_type);
+        self.store_syntax = Some(store_syntax);
+        self
+    }
+    /// Mark the flag as storing, meaning it accepts arguments (but does not require them)
+    /// If a flag is built by calling `with_required_store`, calling this function is superfluous.
+    /// Use this function if the flag accepts arguments optionally
+    ///
+    /// # Returns
+    ///
+    /// * `CliFlagBuilder`
+    ///
+    /// # Example
+    /// ```
+    /// use eshu::{CliFlag, StoreType, StoreSyntax};
+    ///
+    /// let flag = CliFlag::new("flag-name")
     ///     .with_store(StoreType::Value, StoreSyntax::Attached)
     ///     .build(); // build ensures the entire flag built is valid (missing about text here)
     /// assert!(flag.is_err());
@@ -247,8 +233,6 @@ impl CliFlagBuilder {
     ) -> CliFlagBuilder {
         self.store_type = Some(store_type);
         self.store_syntax = Some(store_syntax);
-        // Doc explicitly states that calling `with_storing` is required;
-        // Still set this to true to be nice, developer intent is clear.
         self.storing = true;
         self
     }

@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use athena::{Array, Object, XffValue};
+
 /// Check if a string starts with a dash `-`
 pub fn starts_with_dash(s: &str) -> bool {
     s.starts_with('-')
@@ -42,6 +44,8 @@ pub type RoffString = String;
 /// This is returned by the `Cli::parse` function
 /// The type of the store is determined by the `CliFlag::store_type`
 ///
+/// Implements `Into<XffValue>`.
+///
 /// * `Exists` - If the flag does not require a store, this is returned (This is used to indicate
 /// that a flag was passed in or exists in the argument stream).
 /// * `Value` - A `Vec<String>` (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed values.)
@@ -49,11 +53,39 @@ pub type RoffString = String;
 #[derive(Debug)]
 pub enum Store {
     /// The flag was passed in
+    ///
+    /// Can be cast to `XffValue::Boolean(true)` via `Into<XffValue>`
     Exists,
     /// These values were passed in
+    ///
+    /// Can be cast to `XffValue::Array` via `Into<XffValue>`
     Value(Vec<String>),
     /// These key-value pairs were passed in
+    ///
+    /// Can be cast to `XffValue::Object` via `Into<XffValue>`
     KeyValue(BTreeMap<String, String>),
+}
+
+impl Into<XffValue> for Store {
+    fn into(self) -> XffValue {
+        match self {
+            Store::Exists => XffValue::from(true),
+            Store::Value(val) => {
+                let mut out = Array::new();
+                for val in val {
+                    out.push(XffValue::from(val));
+                }
+                XffValue::from(out)
+            }
+            Store::KeyValue(val) => {
+                let mut out = Object::new();
+                for (key, val) in val {
+                    out.insert(key, XffValue::from(val));
+                }
+                XffValue::from(out)
+            }
+        }
+    }
 }
 
 impl Store {
