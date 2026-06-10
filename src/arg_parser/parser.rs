@@ -172,7 +172,6 @@ pub fn insert_long_flag(
     long_flag: String,
     index: usize,
     store: Store,
-    cli_builder: &CliBuilder,
 ) {
     if entered_flags.contains_key(&long_flag) {
         let flag_store = entered_flags.get_mut(&long_flag).expect("Key exists");
@@ -320,7 +319,7 @@ pub fn parse_subcommand<'a>(
     arg: &str,
     cli: &CliBuilder,
     args: &Vec<String>,
-) -> (bool, Option<(String, Cli<'a>)>) {
+) -> Option<(String, Cli<'a>)> {
     let mut partials = Vec::new();
     let mut execute = None;
     for subcommand in cli.sub_commands.iter() {
@@ -354,9 +353,9 @@ pub fn parse_subcommand<'a>(
         }
         let inner_cli = inner_cli.parse_custom(args.clone()).expect("err");
 
-        (true, Some((execute.name().to_string(), inner_cli)))
+        Some((execute.name().to_string(), inner_cli))
     } else {
-        (false, None)
+        None
     }
 }
 

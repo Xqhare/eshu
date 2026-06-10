@@ -27,6 +27,8 @@ pub struct Cli<'a> {
     pub(crate) unknown_args: Option<Vec<String>>,
     /// Positional arguments without a corresponding flag
     pub(crate) stray_positional_args: Vec<String>,
+    /// The cli of the subcommands for each subcommand called
+    pub(crate) sub_cmd_cli: BTreeMap<String, Cli<'a>>,
 }
 
 impl<'a> Cli<'a> {
@@ -84,6 +86,18 @@ impl<'a> Cli<'a> {
     /// Only available if `handle_unknown_args` is `true`
     pub fn get_unknown_args(&self) -> Option<&Vec<String>> {
         self.unknown_args.as_ref()
+    }
+
+    /// Check if a subcommand was entered
+    pub fn is_subcommand_entered(&self, subcommand_name: &str) -> bool {
+        self.sub_cmd_cli.contains_key(subcommand_name)
+    }
+
+    /// Get the cli of a subcommand
+    ///
+    /// Will only return `Some` if the subcommand was entered
+    pub fn get_subcommand_cli(&self, subcommand_name: &str) -> Option<&Cli<'a>> {
+        self.sub_cmd_cli.get(subcommand_name)
     }
 
     /// Create a manpage for the cli
