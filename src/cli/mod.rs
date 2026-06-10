@@ -106,7 +106,7 @@ impl<'a> Cli<'a> {
     }
 
     pub(crate) fn print_help(&self) {
-        let (_, width) = athena::system::terminal_size(std::io::stdout().as_raw_fd()).unwrap();
+        let (_, _width) = athena::system::terminal_size(std::io::stdout().as_raw_fd()).unwrap();
         let header = format!("{}, Version: {}\n{}\n", self.name, self.version, self.about);
         let body = {
             let mut body = "All available flags:\n".to_string();

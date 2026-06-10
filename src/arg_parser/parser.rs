@@ -111,16 +111,28 @@ pub fn parse_grouped_flags(
             if flag.flag_char == Some(*c) {
                 if index == storing.len() - 1 {
                     if flag.storing && value.is_none() {
-                        if let Some(next_arg) = next_arg {
-                            if is_positional(next_arg) {
-                                value = Some(next_arg.to_string());
-                            } else if flag.required_store {
-                                write_err_and_exit(&format!(
-                                    "Usage error: Flag {} requires an argument. Not attached value found, detached value found '{}' is not a positional argument.\n\nPlease provide one via the following syntax: '-{} VALUE' or '-{}=VALUE' ",
-                                    flag.long_flag, next_arg, *c, *c
-                                ));
+                        if flag.store_syntax == Some(StoreSyntax::Detached) {
+                            if let Some(next_arg) = next_arg {
+                                if is_positional(next_arg) {
+                                    value = Some(next_arg.to_string());
+                                } else if flag.required_store {
+                                    write_err_and_exit(&format!(
+                                        "Usage error: Flag {} requires an argument. Not attached value found, detached value found '{}' is not a positional argument.\n\nPlease provide one via the following syntax: '-{} VALUE' or '-{}=VALUE' ",
+                                        flag.long_flag, next_arg, *c, *c
+                                    ));
+                                }
                             }
                         }
+                    }
+                    if flag.required_store && value.is_none() {
+                        let req_syntax = match &flag.store_syntax.expect("Store syntax not set") {
+                            StoreSyntax::Attached => &format!("-{}={}", *c, "VALUE"),
+                            StoreSyntax::Detached => &format!("-{} {}", *c, "VALUE"),
+                        };
+                        write_err_and_exit(&format!(
+                            "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
+                            *c, flag.long_flag, req_syntax
+                        ));
                     }
                     if let Some(value) = value.clone() {
                         if flag.store_type.is_none() {
@@ -317,7 +329,7 @@ fn handle_store(
 /// * `bool` - Whether or not the subcommand was found. True if found
 pub fn parse_subcommand<'a>(
     arg: &str,
-    cli: &CliBuilder,
+    cli: &CliBuilder<'a>,
     args: &Vec<String>,
 ) -> Option<(String, Cli<'a>)> {
     let mut partials = Vec::new();
@@ -344,12 +356,11 @@ pub fn parse_subcommand<'a>(
                     .unwrap_or("0.0.0".to_string())
                     .to_string(),
             );
-        for flag in &execute.flags() {
-            inner_cli = inner_cli.add_flag(flag.clone())
+        for flag in execute.flags() {
+            inner_cli = inner_cli.add_flag(flag)
         }
-        for subcommand in &execute.subcommands() {
-            // TODO: Add subcommands, cloning is ok, but doesn't work
-            //inner_cli = inner_cli.add_command(subcommand.clone())
+        for subcommand in execute.subcommands() {
+            inner_cli = inner_cli.add_command(subcommand)
         }
         let inner_cli = inner_cli.parse_custom(args.clone()).expect("err");
 
@@ -374,29 +385,43 @@ pub fn parse_short_flag(
     for (index, flag) in cli.flags.iter().enumerate() {
         if flag.flag_char == Some(arg.chars().last().unwrap()) {
             if flag.storing {
-                if flag.required_store && next_arg.is_none() {
+                let mut value = None;
+                if flag.store_syntax == Some(StoreSyntax::Detached) {
+                    if let Some(next_argument) = next_arg {
+                        if is_positional(next_argument) {
+                            value = Some(next_argument.to_string());
+                        }
+                    }
+                }
+
+                if flag.required_store && value.is_none() {
+                    let req_syntax = match &flag.store_syntax.expect("Store syntax not set") {
+                        StoreSyntax::Attached => &format!("-{}={}", arg.chars().last().unwrap(), "VALUE"),
+                        StoreSyntax::Detached => &format!("-{} {}", arg.chars().last().unwrap(), "VALUE"),
+                    };
                     write_err_and_exit(&format!(
-                        "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '-{} VALUE' or '-{}=VALUE'",
-                        arg, flag.long_flag, arg, arg
+                        "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
+                        arg.chars().last().unwrap(), flag.long_flag, req_syntax
                     ));
                 }
-                if let Some(next_arg) = next_arg {
+
+                if let Some(val) = value {
                     match flag.store_type.expect("Store type not set") {
                         StoreType::Value => {
                             return Some((
                                 flag.long_flag.clone(),
-                                (index, Store::Value(vec![next_arg.to_string()])),
+                                (index, Store::Value(vec![val])),
                             ));
                         }
                         StoreType::KeyValue => {
-                            let (key, val) = next_arg.split_once('=').expect("Must be key=value");
+                            let (key, v) = val.split_once('=').expect("Must be key=value");
                             return Some((
                                 flag.long_flag.clone(),
                                 (
                                     index,
                                     Store::KeyValue(BTreeMap::from([(
                                         key.to_string(),
-                                        val.to_string(),
+                                        v.to_string(),
                                     )])),
                                 ),
                             ));

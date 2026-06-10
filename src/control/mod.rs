@@ -9,7 +9,7 @@ pub use flag::CliFlag;
 ///
 /// * `Value` - A value (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed values.)
 /// * `KeyValue` - A key-value pair (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed key-value pairs.)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StoreType {
     /// A value
     Value,
@@ -30,7 +30,7 @@ pub enum StoreType {
 /// If a flag is detached, the calling syntax will be `--flag-name value`.
 /// If the flag has a required store, the calling syntax will be `--flag-name value`, otherwise the calling syntax will be `--flag-name [value]`.
 /// Please note, this also allows `--flag-name "a value with spaces"`, which is not possible with an attached flag (blame POSIX).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StoreSyntax {
     /// Attached to the flag; `--flag-name=value` or `--flag-name=key=value`
     Attached,

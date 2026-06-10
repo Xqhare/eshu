@@ -112,7 +112,14 @@ fn regression_optional_store_no_value() {
     assert!(cli.is_flag_entered("port"));
     assert_eq!(
         cli.get_flag_store("port").unwrap().as_value().unwrap(),
-        &vec!["8080".to_string()]
+        &vec![
+            "8080".to_string(),
+            "0420".to_string(),
+            "8081".to_string(),
+            "1234".to_string(),
+            "5678".to_string(),
+            "9510".to_string(),
+        ]
     );
 }
 

@@ -61,18 +61,37 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
         match state {
             State::ShortFlag => match parse_short_flag(arg, &cli_builder, next_arg) {
                 Some((long_flag, (index, store))) => {
+                    if let Store::Value(_) | Store::KeyValue(_) = &store {
+                        args.next();
+                    }
                     insert_long_flag(&mut entered_flags, long_flag, index, store);
                 }
                 None => unknown_args.push(arg.to_string()),
             },
             State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg) {
                 Some((long_flag, (index, store))) => {
+                    if !arg.contains('=') {
+                        if let Store::Value(_) | Store::KeyValue(_) = &store {
+                            args.next();
+                        }
+                    }
                     insert_long_flag(&mut entered_flags, long_flag, index, store)
                 }
                 None => unknown_args.push(arg.to_string()),
             },
             State::Group => {
                 let grouped_flags = parse_grouped_flags(arg, &cli_builder, next_arg);
+                let mut consumed_next = false;
+                if !arg.contains('=') {
+                    for (_, (_, store)) in &grouped_flags {
+                        if let Store::Value(_) | Store::KeyValue(_) = store {
+                            consumed_next = true;
+                        }
+                    }
+                }
+                if consumed_next {
+                    args.next();
+                }
                 for (long_flag, (index, store)) in grouped_flags {
                     insert_long_flag(&mut entered_flags, long_flag, index, store)
                 }
