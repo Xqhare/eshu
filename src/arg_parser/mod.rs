@@ -55,6 +55,8 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
         if next_arg == Some("--") {
             // Must be detached Value; For now just combine all following and dump on user
             while let Some(arg) = args.next() {
+                // The leading " " is important to make sure that next_arg doesn't start with a
+                // dash (`-- -wierd-file-with-leading-dash.txt` must work), see `utils::is_positional` behavior
                 tmp_next_arg.push_str(" ");
                 tmp_next_arg.push_str(&arg);
             }

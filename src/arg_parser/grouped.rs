@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, iter::Peekable, str::Chars};
 
 use crate::{
-    StoreSyntax, StoreType,
+    CliFlag, StoreSyntax, StoreType,
     cli::builder::CliBuilder,
     utils::{Store, is_positional, write_err_and_exit},
 };
@@ -12,96 +12,154 @@ pub fn parse_grouped_flags(
     cli_builder: &CliBuilder,
     next_arg: Option<&str>,
 ) -> Vec<(String, (usize, Store))> {
-    let mut value = None;
-    let mut storing: Vec<char> = Vec::new();
-    for (i, c) in arg.char_indices() {
-        if i == 0 && c == '-' {
+    let mut out: Vec<(String, (usize, Store))> = Vec::with_capacity(arg.len()); // Should always over-allocate
+
+    let args = arg.chars().collect::<Vec<char>>();
+    let mut arg_iter = arg.chars().peekable();
+    let mut index: usize = 0;
+
+    while let Some(c) = arg_iter.next() {
+        if index == 0 && c == '-' {
+            index += 1;
             continue;
         }
-        if c == '=' {
-            value = Some(arg[i + 1..].to_string());
-            break;
-        }
+        index += 1;
+
         if c.is_ascii_alphabetic() {
-            storing.push(c);
-        } else {
-            write_err_and_exit(&format!("Usage error: Flag must be a-z/A-Z. Got: {}", arg));
-        }
-    }
-
-    let mut out: Vec<(String, (usize, Store))> = Vec::new();
-
-    for (index, c) in storing.iter().enumerate() {
-        for (i, flag) in cli_builder.flags.iter().enumerate() {
-            if flag.flag_char == Some(*c) {
-                if index == storing.len() - 1 {
-                    if flag.storing && value.is_none() {
-                        if flag.store_syntax == Some(StoreSyntax::Detached) {
-                            if let Some(next_arg) = next_arg {
-                                if is_positional(next_arg) {
-                                    value = Some(next_arg.to_string());
-                                } else if flag.required_store {
-                                    write_err_and_exit(&format!(
-                                        "Usage error: Flag {} requires an argument. Not attached value found, detached value found '{}' is not a positional argument.\n\nPlease provide one via the following syntax: '-{} VALUE' or '-{}=VALUE' ",
-                                        flag.long_flag, next_arg, *c, *c
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                    if flag.required_store && value.is_none() {
-                        let req_syntax = match &flag.store_syntax.expect("Store syntax not set") {
-                            StoreSyntax::Attached => &format!("-{}={}", *c, "VALUE"),
-                            StoreSyntax::Detached => &format!("-{} {}", *c, "VALUE"),
-                        };
-                        write_err_and_exit(&format!(
-                            "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
-                            *c, flag.long_flag, req_syntax
-                        ));
-                    }
-                    if let Some(value) = value.clone() {
-                        if flag.store_type.is_none() {
-                            write_err_and_exit(&format!(
-                                "Usage error: Flag {} does not take a value. Eshu found the following value passed to it: {}",
-                                flag.long_flag, value
-                            ));
-                        }
-                        match flag.store_type.unwrap() {
-                            StoreType::Value => {
-                                out.push((flag.long_flag.clone(), (i, Store::Value(vec![value]))))
-                            }
-                            StoreType::KeyValue => {
-                                let split = value.split_once('=');
-                                if split.is_none() {
-                                    write_err_and_exit(&format!(
-                                        "Usage error: Expected key=value, got: {}",
-                                        value
-                                    ));
-                                }
-                                let (k, v) = split.unwrap();
-                                out.push((
-                                    flag.long_flag.clone(),
-                                    (
-                                        i,
-                                        Store::KeyValue(BTreeMap::from([(
-                                            k.to_string(),
-                                            v.to_string(),
-                                        )])),
-                                    ),
-                                ))
-                            }
-                        }
-                    } else {
-                        out.push((flag.long_flag.clone(), (i, Store::Exists)));
-                    }
-                } else {
-                    out.push((flag.long_flag.clone(), (i, Store::Exists)));
+            let mut matched_flag = None;
+            for flag in cli_builder.flags.iter() {
+                if flag.flag_char == Some(c) {
+                    matched_flag = Some(flag);
+                    break;
                 }
             }
+            if let Some(flag) = matched_flag {
+                let stored_value =
+                    get_flag_store(flag, &mut arg_iter, &args, index, arg, next_arg, c);
+                if stored_value.is_none() && flag.required_store {
+                    write_err_and_exit(&format!(
+                        "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
+                        c,
+                        flag.long_flag,
+                        format!("-{}={}", c, "VALUE")
+                    ))
+                }
+                if let Some(stored_value) = stored_value {
+                    match flag.store_type {
+                        Some(StoreType::Value) => {
+                            out.push((
+                                flag.long_flag.clone(),
+                                (index, Store::Value(vec![stored_value])),
+                            ));
+                            break;
+                        }
+                        Some(StoreType::KeyValue) => {
+                            let (key, val) =
+                                stored_value.split_once('=').expect("Must be key=value");
+                            out.push((
+                                flag.long_flag.clone(),
+                                (
+                                    index,
+                                    Store::KeyValue(BTreeMap::from([(
+                                        key.to_string(),
+                                        val.to_string(),
+                                    )])),
+                                ),
+                            ));
+                            break;
+                        }
+                        None => {
+                            write_err_and_exit(&format!(
+                                "Flag '{}' does not have a store type but an associated value was found: '{}'",
+                                flag.long_flag, stored_value
+                            ));
+                        }
+                    }
+                } else {
+                    match flag.store_type {
+                        Some(StoreType::Value) => {
+                            out.push((flag.long_flag.clone(), (index, Store::Value(vec![]))));
+                        }
+                        Some(StoreType::KeyValue) => {
+                            out.push((
+                                flag.long_flag.clone(),
+                                (index, Store::KeyValue(BTreeMap::new())),
+                            ));
+                        }
+                        None => {
+                            out.push((flag.long_flag.clone(), (index, Store::Exists)));
+                        }
+                    }
+                }
+            } else {
+                write_err_and_exit(&format!("Flag character '{}' not found", c));
+            }
+        } else {
+            write_err_and_exit(&format!("Invalid flag character: {}", c));
         }
     }
 
     out
+}
+
+fn get_flag_store(
+    flag: &CliFlag,
+    arg_iter: &mut Peekable<Chars>,
+    args: &Vec<char>,
+    index: usize,
+    arg: &str,
+    next_arg: Option<&str>,
+    c: char,
+) -> Option<String> {
+    let mut stored_value = None;
+    if flag.storing {
+        match flag.store_syntax {
+            Some(StoreSyntax::Attached) => {
+                if let Some(next_arg) = arg_iter.peek() {
+                    if next_arg == &'=' {
+                        stored_value =
+                            Some(args[index.saturating_add(1)..].iter().collect::<String>());
+                    }
+                }
+                if stored_value.is_none() && flag.required_store {
+                    if index == arg.len() {
+                        write_err_and_exit(&format!(
+                            "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
+                            c,
+                            flag.long_flag,
+                            format!("-{}={}", c, "VALUE")
+                        ))
+                    };
+                    // POSIX, as I understand it, requires using all following chars of a
+                    // grouped flag as the value if the flag accepts values. Horrible way of
+                    // putting it
+                    stored_value = Some(args[index.saturating_add(1)..].iter().collect::<String>());
+                }
+            }
+            Some(StoreSyntax::Detached) => {
+                println!("DOG DOG");
+                // TODO: add to the doc that only the *last* flag (in the entire group) can have a detached value
+                if index == arg.len() {
+                    if let Some(next_arg) = next_arg {
+                        if is_positional(next_arg) {
+                            stored_value = Some(next_arg.to_string());
+                        }
+                    }
+                    if flag.required_store && stored_value.is_none() {
+                        write_err_and_exit(&format!(
+                            "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
+                            c,
+                            flag.long_flag,
+                            format!("-{} VALUE", c)
+                        ))
+                    }
+                }
+            }
+            None => {}
+        }
+    }
+
+    stored_value
 }
 
 #[test]
