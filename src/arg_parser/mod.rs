@@ -22,7 +22,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
     let mut sub_cmd_cli: BTreeMap<String, Cli> = BTreeMap::new(); // <name, cli>
     let mut stray_positional_args: Vec<String> = Vec::new();
     let mut args = params.iter().peekable();
-    let mut params_index = 0;
+    let mut params_index: usize = 0;
 
     while let Some(arg) = args.next() {
         params_index += 1;
@@ -37,7 +37,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                 state = State::ShortFlag;
                 if arg == "--" {
                     while let Some(arg) = args.next() {
-                        unknown_args.push(arg.to_string());
+                        stray_positional_args.push(arg.to_string());
                     }
                     break;
                 }
@@ -51,32 +51,33 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
         }
 
         let mut next_arg = args.peek().map(|s| s.as_str());
-        let mut tmp_next_arg = "".to_string();
+        let mut buf: Option<&[String]> = None;
         if next_arg == Some("--") {
-            // Must be detached Value; For now just combine all following and dump on user
-            while let Some(arg) = args.next() {
-                // The leading " " is important to make sure that next_arg doesn't start with a
-                // dash (`-- -wierd-file-with-leading-dash.txt` must work), see `utils::is_positional` behavior
-                tmp_next_arg.push_str(" ");
-                tmp_next_arg.push_str(&arg);
-            }
-            next_arg = Some(&tmp_next_arg);
+            args.next();
+            next_arg = None;
+            buf = Some(&params[params_index.saturating_add(1)..]);
         }
         match state {
-            State::ShortFlag => match parse_short_flag(arg, &cli_builder, next_arg) {
+            State::ShortFlag => match parse_short_flag(arg, &cli_builder, next_arg, buf) {
                 Some((long_flag, (index, store))) => {
                     if let Store::Value(_) | Store::KeyValue(_) = &store {
                         args.next();
+                    } else if let Some(buf) = buf {
+                        let buf = &mut buf.to_vec();
+                        stray_positional_args.append(buf);
                     }
                     insert_long_flag(&mut entered_flags, long_flag, index, store);
                 }
                 None => unknown_args.push(arg.to_string()),
             },
-            State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg) {
+            State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg, buf) {
                 Some((long_flag, (index, store))) => {
                     if !arg.contains('=') {
                         if let Store::Value(_) | Store::KeyValue(_) = &store {
                             args.next();
+                        } else if let Some(buf) = buf {
+                            let buf = &mut buf.to_vec();
+                            stray_positional_args.append(buf);
                         }
                     }
                     insert_long_flag(&mut entered_flags, long_flag, index, store)
@@ -84,12 +85,16 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                 None => unknown_args.push(arg.to_string()),
             },
             State::Group => {
-                let grouped_flags = parse_grouped_flags(arg, &cli_builder, next_arg);
+                let grouped_flags = parse_grouped_flags(arg, &cli_builder, next_arg, buf);
                 let mut consumed_next = false;
                 if !arg.contains('=') {
                     for (_, (_, store)) in &grouped_flags {
                         if let Store::Value(_) | Store::KeyValue(_) = store {
                             consumed_next = true;
+                        } else if let Some(buf) = buf {
+                            let buf = &mut buf.to_vec();
+                            stray_positional_args.append(buf);
+                            break;
                         }
                     }
                 }
@@ -110,6 +115,9 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                     stray_positional_args.push(arg.to_string())
                 }
             }
+        }
+        if buf.is_some() {
+            break;
         }
     }
 

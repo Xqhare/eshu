@@ -11,6 +11,7 @@ pub fn parse_grouped_flags(
     arg: &str,
     cli_builder: &CliBuilder,
     next_arg: Option<&str>,
+    detached_list_args: Option<&[String]>,
 ) -> Vec<(String, (usize, Store))> {
     let mut out: Vec<(String, (usize, Store))> = Vec::with_capacity(arg.len()); // Should always over-allocate
 
@@ -34,8 +35,16 @@ pub fn parse_grouped_flags(
                 }
             }
             if let Some(flag) = matched_flag {
-                let stored_value =
-                    get_flag_store(flag, &mut arg_iter, &args, index, arg, next_arg, c);
+                let stored_value = get_flag_store(
+                    flag,
+                    &mut arg_iter,
+                    &args,
+                    index,
+                    arg,
+                    next_arg,
+                    c,
+                    detached_list_args,
+                );
                 if stored_value.is_none() && flag.required_store {
                     write_err_and_exit(&format!(
                         "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
@@ -45,34 +54,59 @@ pub fn parse_grouped_flags(
                     ))
                 }
                 if let Some(stored_value) = stored_value {
-                    match flag.store_type {
-                        Some(StoreType::Value) => {
-                            out.push((
-                                flag.long_flag.clone(),
-                                (index, Store::Value(vec![stored_value])),
-                            ));
-                            break;
+                    if stored_value.len() <= 1 {
+                        let stored_value =
+                            stored_value.get(0).unwrap_or(&"".to_string()).to_string();
+                        match flag.store_type {
+                            Some(StoreType::Value) => {
+                                out.push((
+                                    flag.long_flag.clone(),
+                                    (index, Store::Value(vec![stored_value])),
+                                ));
+                                break;
+                            }
+                            Some(StoreType::KeyValue) => {
+                                let (key, val) =
+                                    stored_value.split_once('=').expect("Must be key=value");
+                                out.push((
+                                    flag.long_flag.clone(),
+                                    (
+                                        index,
+                                        Store::KeyValue(BTreeMap::from([(
+                                            key.to_string(),
+                                            val.to_string(),
+                                        )])),
+                                    ),
+                                ));
+                                break;
+                            }
+                            None => {
+                                write_err_and_exit(&format!(
+                                    "Flag '{}' does not have a store type but an associated value was found: '{}'",
+                                    flag.long_flag, stored_value
+                                ));
+                            }
                         }
-                        Some(StoreType::KeyValue) => {
-                            let (key, val) =
-                                stored_value.split_once('=').expect("Must be key=value");
-                            out.push((
-                                flag.long_flag.clone(),
-                                (
-                                    index,
-                                    Store::KeyValue(BTreeMap::from([(
-                                        key.to_string(),
-                                        val.to_string(),
-                                    )])),
-                                ),
-                            ));
-                            break;
-                        }
-                        None => {
-                            write_err_and_exit(&format!(
-                                "Flag '{}' does not have a store type but an associated value was found: '{}'",
-                                flag.long_flag, stored_value
-                            ));
+                    } else {
+                        match flag.store_type {
+                            Some(StoreType::Value) => {
+                                out.push((
+                                    flag.long_flag.clone(),
+                                    (index, Store::Value(stored_value)),
+                                ));
+                            }
+                            Some(StoreType::KeyValue) => {
+                                let mut map = BTreeMap::new();
+                                for arg in stored_value {
+                                    let (key, val) =
+                                        arg.split_once('=').expect("Must be key=value");
+                                    map.insert(key.to_string(), val.to_string());
+                                }
+                                out.push((flag.long_flag.clone(), (index, Store::KeyValue(map))));
+                            }
+                            None => {
+                                // Don't do anything
+                            }
                         }
                     }
                 } else {
@@ -110,18 +144,23 @@ fn get_flag_store(
     arg: &str,
     next_arg: Option<&str>,
     c: char,
-) -> Option<String> {
-    let mut stored_value = None;
+    detached_list_args: Option<&[String]>,
+) -> Option<Vec<String>> {
+    let mut stored_value: Option<Vec<String>> = None;
     if flag.storing {
         match flag.store_syntax {
             Some(StoreSyntax::Attached) => {
                 if let Some(next_arg) = arg_iter.peek() {
                     if next_arg == &'=' {
-                        stored_value =
-                            Some(args[index.saturating_add(1)..].iter().collect::<String>());
+                        stored_value = Some(vec![
+                            args[index.saturating_add(1)..].iter().collect::<String>(),
+                        ]);
                     }
                 }
                 if stored_value.is_none() && flag.required_store {
+                    if let Some(detached_list_args) = detached_list_args {
+                        return Some(detached_list_args.to_vec());
+                    }
                     if index == arg.len() {
                         write_err_and_exit(&format!(
                             "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
@@ -133,19 +172,23 @@ fn get_flag_store(
                     // POSIX, as I understand it, requires using all following chars of a
                     // grouped flag as the value if the flag accepts values. Horrible way of
                     // putting it
-                    stored_value = Some(args[index.saturating_add(1)..].iter().collect::<String>());
+                    stored_value = Some(vec![
+                        args[index.saturating_add(1)..].iter().collect::<String>(),
+                    ]);
                 }
             }
             Some(StoreSyntax::Detached) => {
-                println!("DOG DOG");
                 // TODO: add to the doc that only the *last* flag (in the entire group) can have a detached value
                 if index == arg.len() {
                     if let Some(next_arg) = next_arg {
                         if is_positional(next_arg) {
-                            stored_value = Some(next_arg.to_string());
+                            stored_value = Some(vec![next_arg.to_string()]);
                         }
                     }
                     if flag.required_store && stored_value.is_none() {
+                        if let Some(detached_list_args) = detached_list_args {
+                            return Some(detached_list_args.to_vec());
+                        }
                         write_err_and_exit(&format!(
                             "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
                             c,
@@ -211,17 +254,17 @@ fn grouped_flags_attached() {
                 .build()
                 .unwrap(),
         );
-    let out = parse_grouped_flags("-abc", &cli, None);
+    let out = parse_grouped_flags("-abc", &cli, None, None);
     assert_eq!(out.len(), 3);
-    let out = parse_grouped_flags("-abs=1", &cli, None);
+    let out = parse_grouped_flags("-abs=1", &cli, None, None);
     assert_eq!(out.len(), 3);
-    let out = parse_grouped_flags("-abc", &cli, None);
+    let out = parse_grouped_flags("-abc", &cli, None, None);
     assert_eq!(out.len(), 3);
-    let out = parse_grouped_flags("-ao=1", &cli, None);
+    let out = parse_grouped_flags("-ao=1", &cli, None, None);
     assert_eq!(out.len(), 2);
-    let out = parse_grouped_flags("-ao", &cli, None);
+    let out = parse_grouped_flags("-ao", &cli, None, None);
     assert_eq!(out.len(), 2);
-    let out = parse_grouped_flags("-ar=1", &cli, None);
+    let out = parse_grouped_flags("-ar=1", &cli, None, None);
     assert_eq!(out.len(), 2);
 }
 
@@ -236,6 +279,6 @@ fn single_flag_detached() {
             .build()
             .unwrap(),
     );
-    let out = parse_grouped_flags("-a", &cli, Some("1"));
+    let out = parse_grouped_flags("-a", &cli, Some("1"), None);
     assert_eq!(out.len(), 1);
 }

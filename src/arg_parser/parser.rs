@@ -60,6 +60,7 @@ pub fn parse_long_flag(
     arg: &str,
     cli: &CliBuilder,
     next_arg: Option<&str>,
+    detached_list_args: Option<&[String]>,
 ) -> Option<(String, (usize, Store))> {
     let mut arg = arg;
     if let Some(new_arg) = arg.strip_prefix("--") {
@@ -78,7 +79,7 @@ pub fn parse_long_flag(
         };
         if parsed_long_flag == flag.long_flag {
             if flag.storing {
-                return Some(handle_store(arg, index, flag, next_arg));
+                return Some(handle_store(arg, index, flag, next_arg, detached_list_args));
             } else {
                 return Some((flag.long_flag.clone(), (index, Store::Exists)));
             }
@@ -90,7 +91,13 @@ pub fn parse_long_flag(
     if partials.len() == 1 {
         let partial = &cli.flags[partials[0].1];
         if partial.storing {
-            return Some(handle_store(arg, partials[0].1, &partial, next_arg));
+            return Some(handle_store(
+                arg,
+                partials[0].1,
+                &partial,
+                next_arg,
+                detached_list_args,
+            ));
         } else {
             return Some((partial.long_flag.clone(), (partials[0].1, Store::Exists)));
         }
@@ -104,6 +111,7 @@ fn handle_store(
     index: usize,
     cli_flag: &CliFlag,
     next_arg: Option<&str>,
+    detached_list_args: Option<&[String]>,
 ) -> (String, (usize, Store)) {
     let mut store = Store::Exists;
     let mut value = None;
@@ -134,7 +142,21 @@ fn handle_store(
         ));
     }
 
-    if value.is_some() {
+    if let Some(detached_list_args) = detached_list_args {
+        match &cli_flag.store_type.expect("Store type not set") {
+            StoreType::Value => {
+                store = Store::Value(detached_list_args.to_vec());
+            }
+            StoreType::KeyValue => {
+                let mut map = BTreeMap::new();
+                for arg in detached_list_args {
+                    let (key, val) = arg.split_once('=').expect("Must be key=value");
+                    map.insert(key.to_string(), val.to_string());
+                }
+                store = Store::KeyValue(map);
+            }
+        }
+    } else if value.is_some() {
         match &cli_flag.store_type.expect("Store type not set") {
             StoreType::Value => {
                 store = Store::Value(vec![value.unwrap().to_string()]);
@@ -218,6 +240,7 @@ pub fn parse_short_flag(
     arg: &str,
     cli: &CliBuilder,
     next_arg: Option<&str>,
+    detached_list_args: Option<&[String]>,
 ) -> Option<(String, (usize, Store))> {
     for (index, flag) in cli.flags.iter().enumerate() {
         if flag.flag_char == Some(arg.chars().last().unwrap()) {
@@ -251,12 +274,32 @@ pub fn parse_short_flag(
                 if let Some(val) = value {
                     match flag.store_type.expect("Store type not set") {
                         StoreType::Value => {
+                            if let Some(detached_list_args) = detached_list_args {
+                                // Ignore value here, end-of-flag marker was found
+                                return Some((
+                                    flag.long_flag.clone(),
+                                    (index, Store::Value(detached_list_args.to_vec())),
+                                ));
+                            }
                             return Some((
                                 flag.long_flag.clone(),
                                 (index, Store::Value(vec![val])),
                             ));
                         }
                         StoreType::KeyValue => {
+                            if let Some(detached_list_args) = detached_list_args {
+                                // Ignore value here, end-of-flag marker was found
+                                let mut map = BTreeMap::new();
+                                for arg in detached_list_args {
+                                    let (key, val) =
+                                        arg.split_once('=').expect("Must be key=value");
+                                    map.insert(key.to_string(), val.to_string());
+                                }
+                                return Some((
+                                    flag.long_flag.clone(),
+                                    (index, Store::KeyValue(map)),
+                                ));
+                            }
                             let (key, v) = val.split_once('=').expect("Must be key=value");
                             return Some((
                                 flag.long_flag.clone(),

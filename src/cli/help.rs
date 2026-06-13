@@ -196,8 +196,13 @@ impl TermWriter {
     }
 
     /// Zero-dependency text wrapping
+    #[expect(
+        unused_assignments,
+        reason = "`line_start = true` should be needed for the next word loop iteration"
+    )]
     pub fn wrap_text(&mut self, text: &str, target_level: usize) {
         for line in text.lines() {
+            let mut line_start = true;
             for word in line.split_whitespace() {
                 let word_len = word.chars().count();
 
@@ -205,12 +210,14 @@ impl TermWriter {
                 if self.current_col + word_len + 1 > self.indent.max_width {
                     self.push_str("\n");
                     self.pad_to_column(target_level);
-                } else if self.current_col > self.indent.amount {
+                    line_start = true; // Needed for next loop
+                } else if !line_start {
                     // Add a space between words if we aren't at the start of a wrapped line
                     self.push_str(" ");
                 }
 
                 self.push_str(word);
+                line_start = false;
             }
             self.push_str("\n");
             self.pad_to_column(target_level);
