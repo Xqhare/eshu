@@ -109,3 +109,4 @@ fn flag_requirements() {
         .build();
     assert!(starts_with_double_dash.is_ok());
 }
+

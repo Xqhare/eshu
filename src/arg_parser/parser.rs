@@ -196,7 +196,10 @@ pub fn parse_subcommand<'a>(
         for subcommand in execute.subcommands() {
             inner_cli = inner_cli.add_command(subcommand)
         }
-        let inner_cli = inner_cli.parse_custom(args.clone()).expect("err");
+        let mut new_args = Vec::with_capacity(args.len().saturating_add(1));
+        new_args.push("".to_string()); // Is discarded anyway
+        new_args.extend_from_slice(args);
+        let inner_cli = inner_cli.parse_custom(new_args).expect("err");
 
         Some((execute.name().to_string(), inner_cli))
     } else {

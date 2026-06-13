@@ -108,6 +108,13 @@ impl<'a> Cli<'a> {
         todo!("create a valid manpage for the cli - complex, do last")
     }
 
+    /// Create the help string
+    ///
+    /// The returned string is the same as what is printed to stdout when using the `--help` flag
+    pub fn make_help_string(&self) -> String {
+        help(self)
+    }
+
     /// Print the help to stdout
     pub(crate) fn print_help(&self) {
         println!("{}", help(self));

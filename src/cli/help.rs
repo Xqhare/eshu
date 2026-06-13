@@ -56,7 +56,7 @@ fn make_subcmd<'a>(cmd: &'a Box<dyn CliCommand>, out: &mut TermWriter) {
     out.push_str(SPACE);
     out.push_str(&cmd.name());
     out.pad_to_column(1);
-    out.wrap_text(&format!("{}\n{}", cmd.short_about(), cmd.long_about()));
+    out.wrap_text(&format!("{}\n{}", cmd.short_about(), cmd.long_about()), 1);
     out.push_str(BREAK);
     let flags = cmd.flags();
     if flags.len() > 0 {
@@ -101,11 +101,14 @@ fn make_flag(flag: &CliFlag, out: &mut TermWriter) {
     let _ = write!(out, "--{}", flag.long_flag);
 
     out.pad_to_column(2);
-
-    out.wrap_text(&flag.short_about);
-    out.push_str("\n");
-    out.wrap_text(&flag.long_about);
+    out.wrap_text(&flag.short_about, 2);
     out.push_str(BREAK);
+
+    if !flag.long_flag.is_empty() {
+        out.pad_to_column(2);
+        out.wrap_text(&flag.long_about, 2);
+        out.push_str(BREAK);
+    }
 }
 
 fn make_header(cli: &Cli, out: &mut TermWriter) {
@@ -116,11 +119,14 @@ fn make_header(cli: &Cli, out: &mut TermWriter) {
 }
 
 fn make_footer(out: &mut TermWriter) {
-    out.wrap_text(&format!(
-        "This CLI experience is provided by Eshu, version {}.\nFor more information, visit {}",
-        env!("CARGO_PKG_VERSION"),
-        env!("CARGO_PKG_HOMEPAGE")
-    ));
+    out.wrap_text(
+        &format!(
+            "This CLI experience is provided by Eshu, version {}.\nFor more information, visit {}",
+            env!("CARGO_PKG_VERSION"),
+            env!("CARGO_PKG_HOMEPAGE")
+        ),
+        0,
+    );
 }
 
 /// Helper struct for indentation
@@ -190,20 +196,24 @@ impl TermWriter {
     }
 
     /// Zero-dependency text wrapping
-    pub fn wrap_text(&mut self, text: &str) {
-        for word in text.split_whitespace() {
-            let word_len = word.chars().count();
+    pub fn wrap_text(&mut self, text: &str, target_level: usize) {
+        for line in text.lines() {
+            for word in line.split_whitespace() {
+                let word_len = word.chars().count();
 
-            // If adding this word exceeds the terminal width, wrap to next line
-            if self.current_col + word_len + 1 > self.indent.max_width {
-                self.push_str("\n");
-                self.pad_to_column(self.indent.amount);
-            } else if self.current_col > self.indent.amount {
-                // Add a space between words if we aren't at the start of a wrapped line
-                self.push_str(" ");
+                // If adding this word exceeds the terminal width, wrap to next line
+                if self.current_col + word_len + 1 > self.indent.max_width {
+                    self.push_str("\n");
+                    self.pad_to_column(target_level);
+                } else if self.current_col > self.indent.amount {
+                    // Add a space between words if we aren't at the start of a wrapped line
+                    self.push_str(" ");
+                }
+
+                self.push_str(word);
             }
-
-            self.push_str(word);
+            self.push_str("\n");
+            self.pad_to_column(target_level);
         }
     }
 }
