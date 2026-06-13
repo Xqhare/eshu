@@ -68,16 +68,22 @@ pub fn parse_long_flag(
     let mut partials: Vec<(&str, usize)> = Vec::new();
 
     for (index, flag) in cli.flags.iter().enumerate() {
-        if arg.starts_with(&flag.long_flag) {
-            if flag.long_flag.len() > arg.len() {
-                partials.push((&flag.long_flag, index));
+        let parsed_long_flag = {
+            if arg.contains('=') {
+                let (left, _) = arg.split_once('=').expect("arg contains =");
+                left
             } else {
-                if flag.storing {
-                    return Some(handle_store(arg, index, flag, next_arg));
-                } else {
-                    return Some((flag.long_flag.clone(), (index, Store::Exists)));
-                }
+                arg
             }
+        };
+        if parsed_long_flag == flag.long_flag {
+            if flag.storing {
+                return Some(handle_store(arg, index, flag, next_arg));
+            } else {
+                return Some((flag.long_flag.clone(), (index, Store::Exists)));
+            }
+        } else if flag.long_flag.starts_with(parsed_long_flag) {
+            partials.push((flag.long_flag.as_str(), index));
         }
     }
 
