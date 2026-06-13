@@ -1,3 +1,4 @@
+use std::fmt::{self, Write};
 use std::os::fd::AsRawFd;
 
 use crate::{Cli, CliCommand, CliFlag};
@@ -10,18 +11,17 @@ const SPACE: &str = " ";
 ///
 /// For simplicity, ASCII is assumed
 pub fn help(cli: &Cli) -> String {
-    // Arbitrary cap, should be big enough for most, small, programs
-    let mut out = String::with_capacity(2048);
-    let ident = Indentation::new();
+    // Arbitrary cap, should be big enough for most, small, programs (remember it's a string)
+    let mut out = TermWriter::new(2048);
 
-    out.push_str(&make_header(cli, &ident));
-    out.push_str(&make_body(cli, &ident));
-    out.push_str(&make_footer(&ident));
-    out
+    make_header(cli, &mut out);
+    make_body(cli, &mut out);
+    make_footer(&mut out);
+
+    out.buffer
 }
 
-fn make_body(cli: &Cli, ident: &Indentation) -> String {
-    let mut out = String::with_capacity(1536);
+fn make_body(cli: &Cli, out: &mut TermWriter) {
     out.push_str(&cli.about);
     out.push_str(SECTION_BREAK);
 
@@ -29,8 +29,11 @@ fn make_body(cli: &Cli, ident: &Indentation) -> String {
         out.push_str("All available flags:");
         out.push_str(SECTION_BREAK);
         for flag in &cli.flags {
-            out.push_str(&make_flag(flag, ident));
+            make_flag(flag, out);
+            out.push_str(SECTION_BREAK);
         }
+        out.buffer
+            .truncate(out.buffer.len().saturating_sub(SECTION_BREAK.len()));
     }
     if cli.sub_commands.len() > 0 {
         if cli.flags.len() > 0 {
@@ -40,84 +43,174 @@ fn make_body(cli: &Cli, ident: &Indentation) -> String {
         out.push_str("All available commands:");
         out.push_str(SECTION_BREAK);
         for command in &cli.sub_commands {
-            out.push_str(&make_subcmd(command, ident));
+            make_subcmd(command, out);
+            out.push_str(SECTION_BREAK);
         }
+        out.buffer
+            .truncate(out.buffer.len().saturating_sub(SECTION_BREAK.len()));
     }
-
-    out
+    out.push_str(SECTION_BREAK);
 }
 
-fn make_subcmd(cmd: &Box<dyn CliCommand>, ident: &Indentation) -> String {
-    todo!()
+fn make_subcmd<'a>(cmd: &'a Box<dyn CliCommand>, out: &mut TermWriter) {
+    out.push_str(SPACE);
+    out.push_str(&cmd.name());
+    out.pad_to_column(1);
+    out.wrap_text(&format!("{}\n{}", cmd.short_about(), cmd.long_about()));
+    out.push_str(BREAK);
+    let flags = cmd.flags();
+    if flags.len() > 0 {
+        out.push_str("All available flags for this command:");
+        out.push_str(SECTION_BREAK);
+        for flag in &flags {
+            make_flag(flag, out);
+            out.push_str(SECTION_BREAK);
+        }
+        out.buffer
+            .truncate(out.buffer.len().saturating_sub(SECTION_BREAK.len()));
+    }
+    let sub_commands = cmd.subcommands();
+    if sub_commands.len() > 0 {
+        if flags.len() > 0 {
+            out.push_str(SECTION_BREAK);
+            out.push_str(SECTION_BREAK);
+        }
+        out.push_str("All available sub-commands for this command:");
+        out.push_str(SECTION_BREAK);
+        for command in &sub_commands {
+            make_subcmd(command, out);
+            out.push_str(SECTION_BREAK);
+        }
+        out.buffer
+            .truncate(out.buffer.len().saturating_sub(SECTION_BREAK.len()));
+    }
+    out.push_str(BREAK);
 }
 
-fn make_flag(flag: &CliFlag, ident: &Indentation) -> String {
-    todo!()
-}
+fn make_flag(flag: &CliFlag, out: &mut TermWriter) {
+    out.push_str(SPACE);
 
-fn make_header(cli: &Cli, ident: &Indentation) -> String {
-    let mut out: Vec<&str> = Vec::with_capacity(3);
-    let mut name = cli.name.clone();
-    let version = format!("Version: {}", cli.version);
-    if ident.is_full(name.len().saturating_add(version.len())) {
-        name.push_str(BREAK);
+    if let Some(short) = &flag.flag_char {
+        let _ = write!(out, "-{}", short);
     } else {
-        name.push_str(SPACE);
+        out.push_str(SPACE); // Spaces for missing short flag
+        out.push_str(SPACE);
     }
-    out.push(&name);
-    out.push(&version);
-    out.push(SECTION_BREAK);
-    out.join("")
+
+    out.pad_to_column(1);
+    let _ = write!(out, "--{}", flag.long_flag);
+
+    out.pad_to_column(2);
+
+    out.wrap_text(&flag.short_about);
+    out.push_str("\n");
+    out.wrap_text(&flag.long_about);
+    out.push_str(BREAK);
 }
 
-fn make_footer(ident: &Indentation) -> String {
-    let mut out = String::with_capacity(256);
-    let mut provider = format!(
-        "This CLI experience is provided by Eshu, version {}.",
-        env!("CARGO_PKG_VERSION")
-    );
-    let info = format!("For more information, visit {}", env!("CARGO_PKG_HOMEPAGE"));
-    if ident.is_full(provider.len().saturating_add(info.len())) {
-        provider.push_str(BREAK);
-    } else {
-        provider.push_str(SPACE);
-    }
-    out.push_str(&provider);
-    out.push_str(&info);
-    out
+fn make_header(cli: &Cli, out: &mut TermWriter) {
+    out.push_str(&cli.name.clone());
+    out.push_str(BREAK);
+    out.push_str(&format!("Version: {}", cli.version));
+    out.push_str(SECTION_BREAK);
+}
+
+fn make_footer(out: &mut TermWriter) {
+    out.wrap_text(&format!(
+        "This CLI experience is provided by Eshu, version {}.\nFor more information, visit {}",
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_HOMEPAGE")
+    ));
 }
 
 /// Helper struct for indentation
 struct Indentation {
     /// The maximum width of the terminal (divided by 2)
-    pub max_width: u16,
+    pub max_width: usize,
     /// The amount of indentation per level
-    pub amount: u16,
+    pub amount: usize,
 }
 
 impl Indentation {
     /// Create a new indentation instance
     pub fn new() -> Indentation {
-        let (_, width) = athena::system::terminal_size(std::io::stdout().as_raw_fd()).unwrap();
-        let max_width = width.saturating_div(2);
-        let amount = max_width.saturating_div(3);
-        Indentation { max_width, amount }
-    }
-    /// Calculate the indentation for a given level
-    pub fn for_level(&self, level: u16) -> u16 {
-        self.amount.saturating_mul(level)
-    }
-    /// Check if the indentation is full
-    pub fn is_full(&self, length: usize) -> bool {
-        length >= self.max_width as usize
-    }
-    /// Calculate the padding need to be added for a given level
-    pub fn make_padding(&self, cur_len: usize, level: u16) -> String {
-        let mut out = String::with_capacity(256);
-        let amount = self.for_level(level).saturating_sub(cur_len as u16);
-        for _ in 0..amount {
-            out.push_str(SPACE);
+        let (_, max_width) =
+            athena::system::terminal_size(std::io::stdout().as_raw_fd()).unwrap_or((0, 80));
+        let amount = max_width.saturating_div(3).clamp(20, 40) as usize;
+        Indentation {
+            max_width: max_width as usize,
+            amount,
         }
-        out
+    }
+}
+
+/// Helper struct for writing the help buffer
+///
+/// Takes care of indentation, wrapping, etc
+pub struct TermWriter {
+    /// The buffer, use as final output
+    pub buffer: String,
+    /// The current column
+    current_col: usize,
+    /// The indentation helper
+    indent: Indentation,
+}
+
+impl TermWriter {
+    /// Creates a new TermWriter
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            buffer: String::with_capacity(capacity),
+            current_col: 0,
+            indent: Indentation::new(),
+        }
+    }
+
+    /// Pushes text and automatically updates the column counter
+    pub fn push_str(&mut self, s: &str) {
+        self.buffer.push_str(s);
+
+        if let Some(last_line) = s.rsplit('\n').next() {
+            if s.contains('\n') {
+                self.current_col = last_line.chars().count();
+            } else {
+                self.current_col += last_line.chars().count();
+            }
+        }
+    }
+
+    /// Pads the current line with spaces until it hits the target column
+    pub fn pad_to_column(&mut self, target_level: usize) {
+        let target = self.indent.amount.saturating_mul(target_level);
+        let padding_needed = target.saturating_sub(self.current_col);
+        for _ in 0..padding_needed {
+            self.buffer.push(' ');
+        }
+        self.current_col += padding_needed;
+    }
+
+    /// Zero-dependency text wrapping
+    pub fn wrap_text(&mut self, text: &str) {
+        for word in text.split_whitespace() {
+            let word_len = word.chars().count();
+
+            // If adding this word exceeds the terminal width, wrap to next line
+            if self.current_col + word_len + 1 > self.indent.max_width {
+                self.push_str("\n");
+                self.pad_to_column(self.indent.amount);
+            } else if self.current_col > self.indent.amount {
+                // Add a space between words if we aren't at the start of a wrapped line
+                self.push_str(" ");
+            }
+
+            self.push_str(word);
+        }
+    }
+}
+
+impl fmt::Write for TermWriter {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.push_str(s);
+        Ok(())
     }
 }
