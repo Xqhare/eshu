@@ -34,13 +34,13 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
 
         if starts_with_dash(arg) {
             if arg.len() == 2 {
-                state = State::ShortFlag;
                 if arg == "--" {
                     while let Some(arg) = args.next() {
                         stray_positional_args.push(arg.to_string());
                     }
                     break;
                 }
+                state = State::ShortFlag;
             } else if arg.len() > 2 {
                 if arg.starts_with("--") {
                     state = State::LongFlag;
@@ -53,7 +53,6 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
         let mut next_arg = args.peek().map(|s| s.as_str());
         let mut buf: Option<&[String]> = None;
         if next_arg == Some("--") {
-            args.next();
             next_arg = None;
             buf = Some(&params[params_index.saturating_add(1)..]);
         }

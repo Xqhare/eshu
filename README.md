@@ -103,6 +103,19 @@ In other terms, `Eshu` supports the POSIX and GNU syntax in general, along with 
 
 ## Usage
 
+`Eshu` only has two ways of adding functionality to your tool.
+
+- Flags
+- Commands
+
+### Unified Flag Theory
+
+Often the term flag, option, and argument are thrown around interchangeably, and meaning different things to different people.
+
+`Eshu` simplifies this by using a unified flag for its API.
+
+Any flag may be defined to be able to hold values, OR key value pairs.
+
 ### Best Practices Using `Eshu`
 
 `Eshu` is best used by following the general best practices for CLI tools.
