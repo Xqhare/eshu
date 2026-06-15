@@ -16,7 +16,7 @@ fn simple_cmd() {
                 .build()
                 .expect("Failed"),
         ))
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test-cli".to_string(),
             "cmd".to_string(),
             "--a-flag".to_string(),
@@ -47,7 +47,7 @@ fn simple_cmd_empty_input() {
                 .build()
                 .expect("Failed"),
         ))
-        .parse_custom(vec!["test-cli".to_string(), "".to_string()]);
+        .try_parse_custom(vec!["test-cli".to_string(), "".to_string()]);
     assert!(cli.is_ok());
     let cli: Cli = cli.unwrap();
     assert!(!cli.is_flag_entered("a-flag"));

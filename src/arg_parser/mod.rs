@@ -21,102 +21,104 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
     let mut unknown_args: Vec<String> = Vec::new();
     let mut sub_cmd_cli: BTreeMap<String, Cli> = BTreeMap::new(); // <name, cli>
     let mut stray_positional_args: Vec<String> = Vec::new();
-    let mut args = params.iter().peekable();
-    let mut params_index: usize = 0;
+    if params.len() != 0 {
+        let mut args = params[1..].iter().peekable();
+        let mut params_index: usize = 1;
 
-    while let Some(arg) = args.next() {
-        params_index += 1;
-        if unknown_args.len() > 0 && !cli_builder.handle_unknown_args {
-            break;
-        }
+        while let Some(arg) = args.next() {
+            params_index += 1;
+            if unknown_args.len() > 0 && !cli_builder.handle_unknown_args {
+                break;
+            }
 
-        let mut state = State::Positional;
+            let mut state = State::Positional;
 
-        if starts_with_dash(arg) {
-            if arg.len() == 2 {
-                if arg == "--" {
-                    while let Some(arg) = args.next() {
-                        stray_positional_args.push(arg.to_string());
+            if starts_with_dash(arg) {
+                if arg.len() == 2 {
+                    if arg == "--" {
+                        while let Some(arg) = args.next() {
+                            stray_positional_args.push(arg.to_string());
+                        }
+                        break;
                     }
-                    break;
-                }
-                state = State::ShortFlag;
-            } else if arg.len() > 2 {
-                if arg.starts_with("--") {
-                    state = State::LongFlag;
-                } else {
-                    state = State::Group;
+                    state = State::ShortFlag;
+                } else if arg.len() > 2 {
+                    if arg.starts_with("--") {
+                        state = State::LongFlag;
+                    } else {
+                        state = State::Group;
+                    }
                 }
             }
-        }
 
-        let mut next_arg = args.peek().map(|s| s.as_str());
-        let mut buf: Option<&[String]> = None;
-        if next_arg == Some("--") {
-            next_arg = None;
-            buf = Some(&params[params_index.saturating_add(1)..]);
-        }
-        match state {
-            State::ShortFlag => match parse_short_flag(arg, &cli_builder, next_arg, buf) {
-                Some((long_flag, (index, store))) => {
-                    if let Store::Value(_) | Store::KeyValue(_) = &store {
-                        args.next();
-                    } else if let Some(buf) = buf {
-                        let buf = &mut buf.to_vec();
-                        stray_positional_args.append(buf);
-                    }
-                    insert_long_flag(&mut entered_flags, long_flag, index, store);
-                }
-                None => unknown_args.push(arg.to_string()),
-            },
-            State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg, buf) {
-                Some((long_flag, (index, store))) => {
-                    if !arg.contains('=') {
+            let mut next_arg = args.peek().map(|s| s.as_str());
+            let mut buf: Option<&[String]> = None;
+            if next_arg == Some("--") {
+                next_arg = None;
+                buf = Some(&params[params_index.saturating_add(1)..]);
+            }
+            match state {
+                State::ShortFlag => match parse_short_flag(arg, &cli_builder, next_arg, buf) {
+                    Some((long_flag, (index, store))) => {
                         if let Store::Value(_) | Store::KeyValue(_) = &store {
                             args.next();
                         } else if let Some(buf) = buf {
                             let buf = &mut buf.to_vec();
                             stray_positional_args.append(buf);
                         }
+                        insert_long_flag(&mut entered_flags, long_flag, index, store);
                     }
-                    insert_long_flag(&mut entered_flags, long_flag, index, store)
-                }
-                None => unknown_args.push(arg.to_string()),
-            },
-            State::Group => {
-                let grouped_flags = parse_grouped_flags(arg, &cli_builder, next_arg, buf);
-                let mut consumed_next = false;
-                if !arg.contains('=') {
-                    for (_, (_, store)) in &grouped_flags {
-                        if let Store::Value(_) | Store::KeyValue(_) = store {
-                            consumed_next = true;
-                        } else if let Some(buf) = buf {
-                            let buf = &mut buf.to_vec();
-                            stray_positional_args.append(buf);
-                            break;
+                    None => unknown_args.push(arg.to_string()),
+                },
+                State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg, buf) {
+                    Some((long_flag, (index, store))) => {
+                        if !arg.contains('=') {
+                            if let Store::Value(_) | Store::KeyValue(_) = &store {
+                                args.next();
+                            } else if let Some(buf) = buf {
+                                let buf = &mut buf.to_vec();
+                                stray_positional_args.append(buf);
+                            }
+                        }
+                        insert_long_flag(&mut entered_flags, long_flag, index, store)
+                    }
+                    None => unknown_args.push(arg.to_string()),
+                },
+                State::Group => {
+                    let grouped_flags = parse_grouped_flags(arg, &cli_builder, next_arg, buf);
+                    let mut consumed_next = false;
+                    if !arg.contains('=') {
+                        for (_, (_, store)) in &grouped_flags {
+                            if let Store::Value(_) | Store::KeyValue(_) = store {
+                                consumed_next = true;
+                            } else if let Some(buf) = buf {
+                                let buf = &mut buf.to_vec();
+                                stray_positional_args.append(buf);
+                                break;
+                            }
                         }
                     }
+                    if consumed_next {
+                        args.next();
+                    }
+                    for (long_flag, (index, store)) in grouped_flags {
+                        insert_long_flag(&mut entered_flags, long_flag, index, store)
+                    }
                 }
-                if consumed_next {
-                    args.next();
-                }
-                for (long_flag, (index, store)) in grouped_flags {
-                    insert_long_flag(&mut entered_flags, long_flag, index, store)
+                State::Positional => {
+                    if let Some((name, sub_cli)) =
+                        parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec())
+                    {
+                        sub_cmd_cli.insert(name, sub_cli);
+                        break;
+                    } else {
+                        stray_positional_args.push(arg.to_string())
+                    }
                 }
             }
-            State::Positional => {
-                if let Some((name, sub_cli)) =
-                    parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec())
-                {
-                    sub_cmd_cli.insert(name, sub_cli);
-                    break;
-                } else {
-                    stray_positional_args.push(arg.to_string())
-                }
+            if buf.is_some() {
+                break;
             }
-        }
-        if buf.is_some() {
-            break;
         }
     }
 

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, rc::Rc};
 
 use crate::{
     CliCommand, CliFlag,
@@ -20,7 +20,7 @@ pub struct Cli<'a> {
     /// The flags of the program
     pub(crate) flags: Vec<CliFlag>,
     /// The commands of the program
-    pub(crate) sub_commands: Vec<std::rc::Rc<dyn CliCommand<'a>>>,
+    pub(crate) sub_commands: Vec<Rc<dyn CliCommand<'a>>>,
     /// The entered flags of the program. The key is the name (long form) of the flag, the value is a tuple of the flag (index into the flags vec) and the store
     pub(crate) entered_flags: BTreeMap<String, (usize, Store)>,
     /// The unknown arguments. Always `Some` (but with a length of 0 if no unknown arguments) if `handle_unknown_args` is `true`

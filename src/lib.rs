@@ -47,4 +47,4 @@ mod utils;
 
 pub use cli::Cli;
 pub use control::*;
-pub use error::EshuError;
+pub use error::EshuErrorKind;

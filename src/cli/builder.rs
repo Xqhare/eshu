@@ -1,9 +1,10 @@
 use crate::{
-    Cli, CliCommand, CliFlag, EshuError,
+    Cli, CliCommand, CliFlag, EshuErrorKind,
     arg_parser::parse_args,
     error::EshuResult,
     utils::{contains_whitespace, get_params_make_args},
 };
+use nemesis::NemesisError;
 
 pub struct CliBuilder<'a> {
     pub(crate) name: String,
@@ -114,7 +115,7 @@ impl<'a> CliBuilder<'a> {
     ///     .with_version(env!("CARGO_PKG_VERSION"))
     ///     .handle_unknown_args()
     ///     .basic()
-    ///     .parse();
+    ///     .try_parse();
     /// assert!(cli.is_ok());
     /// ```
     pub fn with_version(mut self, version: &str) -> Self {
@@ -137,7 +138,7 @@ impl<'a> CliBuilder<'a> {
     ///
     /// let cli = Cli::new("my-cli")
     ///     .with_about("My CLI with special features")
-    ///     .parse();
+    ///     .try_parse();
     /// assert!(cli.is_err()); // Not all required fields are set
     /// ```
     pub fn with_about(mut self, about: &str) -> Self {
@@ -146,19 +147,30 @@ impl<'a> CliBuilder<'a> {
     }
     /// Build the command line interface, validate its fields and get & parse the command line arguments passed into the program
     /// This will return an error if the name is invalid, the version is empty, or the about is empty
+    /// Build the command line interface, validate its fields and get & parse the command line arguments passed into the program
+    ///
+    /// If validation or parsing fails, this will print the error using `eprintln!` and exit with code 1.
     ///
     /// Will return the `Cli` struct otherwise. This can be queried with
     /// `Cli::flag_entered("flag_name")`, see the `Cli` struct for more information
     ///
     /// # Returns
     ///
-    /// * `EshuResult<Cli>`
-    pub fn parse(self) -> EshuResult<Cli<'a>> {
-        parse_args(self, get_params_make_args())
+    /// * `Cli`
+    pub fn parse(self) -> Cli<'a> {
+        match self.try_parse() {
+            Ok(cli) => cli,
+            Err(err) => {
+                eprintln!("{}", err);
+                std::process::exit(1);
+            }
+        }
     }
     /// Build the command line interface, validate its fields and parse the command line arguments
     ///
     /// Use this if you want to get the command line arguments yourself (`Eshu` uses `std::env::args_os()` and lossy converts them into `String`)
+    ///
+    /// If validation or parsing fails, this will print the error using `eprintln!` and exit with code 1.
     ///
     /// # Arguments
     ///
@@ -166,32 +178,52 @@ impl<'a> CliBuilder<'a> {
     ///
     /// # Returns
     ///
-    /// * `EshuResult<Cli>`
+    /// * `Cli`
     ///
-    /// # Note
-    ///
-    /// `Eshu` expects the very first element of the passed in `Vec<String>` to be the program name. This element is skipped and can be anything, it must be present however.
-    pub fn parse_custom(self, params: Vec<String>) -> EshuResult<Cli<'a>> {
-        parse_args(self, params.into_iter().skip(1).collect())
+    pub fn parse_custom(self, params: Vec<String>) -> Cli<'a> {
+        match self.try_parse_custom(params) {
+            Ok(cli) => cli,
+            Err(err) => {
+                eprintln!("{}", err);
+                std::process::exit(1);
+            }
+        }
+    }
+    /// Non-exiting version of parse. Bubbles up any validation or parsing errors.
+    pub fn try_parse(self) -> EshuResult<Cli<'a>> {
+        self.try_parse_custom(get_params_make_args())
+    }
+
+    /// Non-exiting custom version of parse.
+    pub fn try_parse_custom(self, params: Vec<String>) -> EshuResult<Cli<'a>> {
+        parse_args(self, params)
     }
     pub(crate) fn validate_self(&self) -> EshuResult<()> {
         if contains_whitespace(&self.name) {
-            return Err(EshuError::InvalidName(
-                "Name must not contain whitespace".to_string(),
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::InvalidName("Name must not contain whitespace".to_string()),
             ));
         }
         if self.name.is_empty() {
-            return Err(EshuError::EmptyString("Name must not be empty".to_string()));
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::EmptyString("Name must not be empty".to_string()),
+            ));
         }
         if self.version.is_none() {
-            return Err(EshuError::EmptyString(
-                "Version must not be empty".to_string(),
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::EmptyString("Version must not be empty".to_string()),
             ));
         }
         // `help` and `version` are GNU required; they are always present
         // Having no other flags or commands seems like a developer error
         if self.flags.len() == 2 && self.sub_commands.is_empty() && !self.basic {
-            return Err(EshuError::NoFlagsOrCommands);
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::NoFlagsOrCommands,
+            ));
         }
         Ok(())
     }

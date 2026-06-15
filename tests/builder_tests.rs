@@ -5,7 +5,7 @@ fn build_most_basic_cli() {
     let cli = Cli::new("test-cli")
         .with_version("0.0.0")
         .basic()
-        .parse_custom(vec!["test".to_string()]);
+        .try_parse_custom(vec!["test".to_string()]);
     assert!(cli.is_ok());
 }
 
@@ -20,7 +20,7 @@ fn build_basic_cli() {
                 .build()
                 .unwrap(),
         )
-        .parse_custom(vec!["test".to_string()]);
+        .try_parse_custom(vec!["test".to_string()]);
     assert!(cli.is_ok());
 }
 
@@ -28,7 +28,7 @@ fn build_basic_cli() {
 fn cli_requirements() {
     let no_flag = Cli::new("test-cli")
         .with_version("0.0.0")
-        .parse_custom(vec!["test".to_string()]);
+        .try_parse_custom(vec!["test".to_string()]);
     assert!(no_flag.is_err());
     let no_ver = Cli::new("test-cli")
         .add_flag(
@@ -38,7 +38,7 @@ fn cli_requirements() {
                 .build()
                 .unwrap(),
         )
-        .parse_custom(vec!["test".to_string()]);
+        .try_parse_custom(vec!["test".to_string()]);
     assert!(no_ver.is_err());
     let no_name = Cli::new("")
         .with_version("0.0.0")
@@ -49,7 +49,7 @@ fn cli_requirements() {
                 .build()
                 .unwrap(),
         )
-        .parse_custom(vec!["test".to_string()]);
+        .try_parse_custom(vec!["test".to_string()]);
     assert!(no_name.is_err());
 }
 

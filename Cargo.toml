@@ -8,4 +8,4 @@ license = "MIT"
 
 [dependencies]
 athena = { git = "https://github.com/Xqhare/athena", features = ["system"] }
-
+nemesis = { git = "https://github.com/Xqhare/nemesis" }

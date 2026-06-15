@@ -11,7 +11,7 @@ fn test_long_flag_basic() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec!["test".to_string(), "--a-flag".to_string()]);
+        .try_parse_custom(vec!["test".to_string(), "--a-flag".to_string()]);
     assert!(cli.is_ok());
     let cli = cli.unwrap();
     assert!(cli.is_flag_entered("a-flag"));
@@ -28,7 +28,7 @@ fn end_of_flag_marker_no_store_long_flag() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "--a-flag".to_string(),
             "--".to_string(),
@@ -55,7 +55,7 @@ fn end_of_flag_marker_no_store_short_flag() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "-a".to_string(),
             "--".to_string(),
@@ -90,7 +90,7 @@ fn end_of_flag_marker_no_store_group_flag() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "-ba".to_string(),
             "--".to_string(),
@@ -133,7 +133,7 @@ fn partial_flags() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "--port-oth".to_string(),
             "8080".to_string(),
@@ -187,7 +187,7 @@ fn regression_detached_store() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "--port-other".to_string(),
             "8080".to_string(),
@@ -239,7 +239,7 @@ fn regression_attached_store() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "--port-other=8080".to_string(),
             "--port=0123".to_string(),
@@ -280,7 +280,7 @@ fn regression_single_short_flag_overwrite() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "-p".to_string(),
             "8080".to_string(),
@@ -327,7 +327,7 @@ fn regression_optional_store_no_value() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "-a".to_string(),
             "detachedValue".to_string(),
@@ -395,7 +395,7 @@ fn detached_store() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "-a".to_string(),
             "detachedValue".to_string(),
@@ -464,7 +464,7 @@ fn attached_store() {
                 .unwrap(),
         )
         .with_version("0.0.0")
-        .parse_custom(vec![
+        .try_parse_custom(vec![
             "test".to_string(),
             "--a-flag=AttachedValue".to_string(),
             "-p=8080".to_string(),
