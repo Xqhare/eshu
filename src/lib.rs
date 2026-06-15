@@ -34,7 +34,6 @@
 // For 1.0.0:
 // TODO: Add tests
 // TODO: Add examples
-// TODO: Make clippy happy
 // TODO: Doc
 // TODO: Man page generation (big one!)
 // TODO: Make safe:
