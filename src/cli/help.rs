@@ -43,7 +43,7 @@ fn make_body(cli: &Cli, out: &mut TermWriter) {
         out.push_str("All available commands:");
         out.push_str(SECTION_BREAK);
         for command in &cli.sub_commands {
-            make_subcmd(&**command, out);
+            make_subcmd(command.as_ref(), out);
             out.push_str(SECTION_BREAK);
         }
         out.buffer
