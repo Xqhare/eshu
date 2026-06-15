@@ -110,3 +110,25 @@ fn flag_requirements() {
     assert!(starts_with_double_dash.is_ok());
 }
 
+#[test]
+fn test_programmatic_downcast() {
+    let err = match Cli::new("") // Invalid empty name
+        .with_version("0.0.0")
+        .try_parse_custom(vec!["test".to_string()])
+    {
+        Ok(_) => panic!("Expected error, got Ok"),
+        Err(e) => e,
+    };
+    
+    assert_eq!(err.source_name(), "eshu::builder");
+    if let Some(eshu_err) = err.downcast_ref::<eshu::EshuErrorKind>() {
+        match eshu_err {
+            eshu::EshuErrorKind::EmptyString(msg) => assert!(msg.contains("Name")),
+            _ => panic!("Expected EmptyString error"),
+        }
+    } else {
+        panic!("Failed to downcast leaf error");
+    }
+}
+
+
