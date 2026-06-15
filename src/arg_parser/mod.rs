@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, process::exit};
 
 use crate::{
     Cli, EshuErrorKind,
@@ -15,6 +15,11 @@ use nemesis::NemesisError;
 mod grouped;
 mod parser;
 
+#[expect(clippy::expect_used, reason = "Dynamic check done in validate_self")]
+#[expect(clippy::shadow_unrelated, reason = "Shadowing is fine here")]
+#[expect(clippy::needless_pass_by_value, reason = "API")]
+#[expect(clippy::too_many_lines, reason = "Parsing is complex")]
+#[expect(clippy::cognitive_complexity, reason = "Parsing is complex")]
 pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cli> {
     cli_builder.validate_self()?;
 
@@ -22,13 +27,13 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
     let mut unknown_args: Vec<String> = Vec::new();
     let mut sub_cmd_cli: BTreeMap<String, Cli> = BTreeMap::new(); // <name, cli>
     let mut stray_positional_args: Vec<String> = Vec::new();
-    if params.len() != 0 {
+    if !params.is_empty() {
         let mut args = params[1..].iter().peekable();
         let mut params_index: usize = 1;
 
         while let Some(arg) = args.next() {
-            params_index += 1;
-            if unknown_args.len() > 0 && !cli_builder.handle_unknown_args {
+            params_index = params_index.saturating_add(1);
+            if !unknown_args.is_empty() && !cli_builder.handle_unknown_args {
                 break;
             }
 
@@ -37,8 +42,8 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
             if starts_with_dash(arg) {
                 if arg.len() == 2 {
                     if arg == "--" {
-                        while let Some(arg) = args.next() {
-                            stray_positional_args.push(arg.to_string());
+                        for arg in args.by_ref() {
+                            stray_positional_args.push(arg.clone());
                         }
                         break;
                     }
@@ -69,7 +74,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                         }
                         insert_long_flag(&mut entered_flags, long_flag, index, store);
                     }
-                    None => unknown_args.push(arg.to_string()),
+                    None => unknown_args.push(arg.clone()),
                 },
                 State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg, buf)? {
                     Some((long_flag, (index, store))) => {
@@ -81,9 +86,9 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                                 stray_positional_args.append(buf);
                             }
                         }
-                        insert_long_flag(&mut entered_flags, long_flag, index, store)
+                        insert_long_flag(&mut entered_flags, long_flag, index, store);
                     }
-                    None => unknown_args.push(arg.to_string()),
+                    None => unknown_args.push(arg.clone()),
                 },
                 State::Group => {
                     let grouped_flags = parse_grouped_flags(arg, &cli_builder, next_arg, buf)?;
@@ -103,7 +108,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                         args.next();
                     }
                     for (long_flag, (index, store)) in grouped_flags {
-                        insert_long_flag(&mut entered_flags, long_flag, index, store)
+                        insert_long_flag(&mut entered_flags, long_flag, index, store);
                     }
                 }
                 State::Positional => {
@@ -113,7 +118,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                         sub_cmd_cli.insert(name, sub_cli);
                         break;
                     } else {
-                        stray_positional_args.push(arg.to_string())
+                        stray_positional_args.push(arg.clone());
                     }
                 }
             }
@@ -125,7 +130,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
 
     let unknown_args: Option<Vec<String>> = if cli_builder.handle_unknown_args {
         Some(unknown_args)
-    } else if unknown_args.len() > 0 {
+    } else if !unknown_args.is_empty() {
         return Err(NemesisError::new(
             "eshu::parser",
             EshuErrorKind::UnknownArgument(unknown_args.join("; ")),
@@ -136,7 +141,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
 
     let cli = Cli {
         name: cli_builder.name,
-        version: cli_builder.version.unwrap(),
+        version: cli_builder.version.expect("Dynamically checked above"),
         about: cli_builder.about,
         flags: cli_builder.flags,
         sub_commands: cli_builder.sub_commands,
@@ -148,11 +153,11 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
 
     if cli.is_flag_entered("help") {
         cli.print_help();
-        std::process::exit(0);
+        exit(0);
     }
     if cli.is_flag_entered("version") {
         cli.print_version();
-        std::process::exit(0);
+        exit(0);
     }
 
     if cli_builder.auto_execution {
