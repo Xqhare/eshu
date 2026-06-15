@@ -205,7 +205,7 @@ pub fn parse_subcommand<'a>(
     }
     if let Some(execute) = execute {
         let mut inner_cli = Cli::new(execute.name())
-            .with_about(execute.short_about())
+            .with_about(&execute.short_about())
             .with_version(
                 &cli.version
                     .clone()
@@ -213,7 +213,7 @@ pub fn parse_subcommand<'a>(
                     .to_string(),
             );
         for flag in execute.flags() {
-            inner_cli = inner_cli.add_flag(flag)
+            inner_cli = inner_cli.add_flag(flag.clone())
         }
         for subcommand in execute.subcommands() {
             inner_cli = inner_cli.add_command(subcommand)

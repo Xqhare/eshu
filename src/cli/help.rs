@@ -62,7 +62,7 @@ fn make_subcmd<'a>(cmd: &'a Box<dyn CliCommand>, out: &mut TermWriter) {
     if flags.len() > 0 {
         out.push_str("All available flags for this command:");
         out.push_str(SECTION_BREAK);
-        for flag in &flags {
+        for flag in flags {
             make_flag(flag, out);
             out.push_str(SECTION_BREAK);
         }
@@ -77,7 +77,7 @@ fn make_subcmd<'a>(cmd: &'a Box<dyn CliCommand>, out: &mut TermWriter) {
         }
         out.push_str("All available sub-commands for this command:");
         out.push_str(SECTION_BREAK);
-        for command in &sub_commands {
+        for command in sub_commands {
             make_subcmd(command, out);
             out.push_str(SECTION_BREAK);
         }

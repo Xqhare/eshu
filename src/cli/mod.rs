@@ -10,7 +10,6 @@ pub mod builder;
 mod help;
 
 /// Generate a command line interface
-#[derive(Debug)]
 pub struct Cli<'a> {
     /// The name of the program
     pub(crate) name: String,
@@ -103,7 +102,9 @@ impl<'a> Cli<'a> {
 
     /// Create a manpage for the cli
     ///
-    /// The returned string is a valid manpage in `roff` format
+    /// The returned string is a valid manpage in `roff` format.
+    ///
+    /// To learn more, check out the [man(7) man page](https://man7.org/linux/man-pages/man7/man.7.html) and the [man(1) man page](https://man7.org/linux/man-pages/man1/man.1.html).
     pub fn make_manpage(&self) -> RoffString {
         todo!("create a valid manpage for the cli - complex, do last")
     }

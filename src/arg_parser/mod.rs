@@ -157,7 +157,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
     if cli_builder.auto_execution {
         for cmd in &cli.sub_cmd_cli {
             for def_cmd in &cli.sub_commands {
-                if cmd.0 == def_cmd.name() {
+                if cmd.0 == &def_cmd.name() {
                     def_cmd.execute(cmd.1);
                 }
             }

@@ -91,7 +91,7 @@ impl<'a> CliBuilder<'a> {
     /// # Returns
     ///
     /// * `CliBuilder`
-    pub fn add_command(mut self, command: Box<dyn CliCommand<'a>>) -> Self {
+    pub fn add_command(mut self, command: Box<dyn CliCommand<'a> + 'static>) -> Self {
         self.sub_commands.push(command);
         self
     }

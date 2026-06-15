@@ -2,6 +2,7 @@ mod builder;
 mod cmd;
 mod flag;
 
+pub use cmd::CliCmd;
 pub use cmd::CliCommand;
 pub use flag::CliFlag;
 
