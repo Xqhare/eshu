@@ -1,10 +1,11 @@
 use std::{collections::BTreeMap, iter::Peekable, str::Chars};
 
 use crate::{
-    CliFlag, StoreSyntax, StoreType,
+    CliFlag, EshuErrorKind, StoreSyntax, StoreType,
     cli::builder::CliBuilder,
-    utils::{Store, is_positional, write_err_and_exit},
+    utils::{Store, is_positional},
 };
+use nemesis::NemesisError;
 
 /// Handles grouped flags
 pub fn parse_grouped_flags(
@@ -12,7 +13,7 @@ pub fn parse_grouped_flags(
     cli_builder: &CliBuilder,
     next_arg: Option<&str>,
     detached_list_args: Option<&[String]>,
-) -> Vec<(String, (usize, Store))> {
+) -> Result<Vec<(String, (usize, Store))>, NemesisError> {
     let mut out: Vec<(String, (usize, Store))> = Vec::with_capacity(arg.len()); // Should always over-allocate
 
     let args = arg.chars().collect::<Vec<char>>();
@@ -44,14 +45,15 @@ pub fn parse_grouped_flags(
                     next_arg,
                     c,
                     detached_list_args,
-                );
+                )?;
                 if stored_value.is_none() && flag.required_store {
-                    write_err_and_exit(&format!(
-                        "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
-                        c,
-                        flag.long_flag,
-                        format!("-{}={}", c, "VALUE")
-                    ))
+                    return Err(NemesisError::new(
+                        "eshu::parser",
+                        EshuErrorKind::MissingArgument {
+                            flag: format!("-{} (--{})", c, flag.long_flag),
+                            expected_syntax: format!("-{}={}", c, "VALUE"),
+                        },
+                    ));
                 }
                 if let Some(stored_value) = stored_value {
                     if stored_value.len() <= 1 {
@@ -81,9 +83,12 @@ pub fn parse_grouped_flags(
                                 break;
                             }
                             None => {
-                                write_err_and_exit(&format!(
-                                    "Flag '{}' does not have a store type but an associated value was found: '{}'",
-                                    flag.long_flag, stored_value
+                                return Err(NemesisError::new(
+                                    "eshu::parser",
+                                    EshuErrorKind::Generic(format!(
+                                        "Flag '{}' does not have a store type but an associated value was found: '{}'",
+                                        flag.long_flag, stored_value
+                                    )),
                                 ));
                             }
                         }
@@ -126,14 +131,20 @@ pub fn parse_grouped_flags(
                     }
                 }
             } else {
-                write_err_and_exit(&format!("Flag character '{}' not found", c));
+                return Err(NemesisError::new(
+                    "eshu::parser",
+                    EshuErrorKind::Generic(format!("Flag character '{}' not found", c)),
+                ));
             }
         } else {
-            write_err_and_exit(&format!("Invalid flag character: {}", c));
+            return Err(NemesisError::new(
+                "eshu::parser",
+                EshuErrorKind::Generic(format!("Invalid flag character: {}", c)),
+            ));
         }
     }
 
-    out
+    Ok(out)
 }
 
 fn get_flag_store(
@@ -145,7 +156,7 @@ fn get_flag_store(
     next_arg: Option<&str>,
     c: char,
     detached_list_args: Option<&[String]>,
-) -> Option<Vec<String>> {
+) -> Result<Option<Vec<String>>, NemesisError> {
     let mut stored_value: Option<Vec<String>> = None;
     if flag.storing {
         match flag.store_syntax {
@@ -159,15 +170,16 @@ fn get_flag_store(
                 }
                 if stored_value.is_none() && flag.required_store {
                     if let Some(detached_list_args) = detached_list_args {
-                        return Some(detached_list_args.to_vec());
+                        return Ok(Some(detached_list_args.to_vec()));
                     }
                     if index == arg.len() {
-                        write_err_and_exit(&format!(
-                            "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
-                            c,
-                            flag.long_flag,
-                            format!("-{}={}", c, "VALUE")
-                        ))
+                        return Err(NemesisError::new(
+                            "eshu::parser",
+                            EshuErrorKind::MissingArgument {
+                                flag: format!("-{} (--{})", c, flag.long_flag),
+                                expected_syntax: format!("-{}={}", c, "VALUE"),
+                            },
+                        ));
                     };
                     // POSIX, as I understand it, requires using all following chars of a
                     // grouped flag as the value if the flag accepts values. Horrible way of
@@ -187,14 +199,15 @@ fn get_flag_store(
                     }
                     if flag.required_store && stored_value.is_none() {
                         if let Some(detached_list_args) = detached_list_args {
-                            return Some(detached_list_args.to_vec());
+                            return Ok(Some(detached_list_args.to_vec()));
                         }
-                        write_err_and_exit(&format!(
-                            "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
-                            c,
-                            flag.long_flag,
-                            format!("-{} VALUE", c)
-                        ))
+                        return Err(NemesisError::new(
+                            "eshu::parser",
+                            EshuErrorKind::MissingArgument {
+                                flag: format!("-{} (--{})", c, flag.long_flag),
+                                expected_syntax: format!("-{} {}", c, "VALUE"),
+                            },
+                        ));
                     }
                 }
             }
@@ -202,7 +215,7 @@ fn get_flag_store(
         }
     }
 
-    stored_value
+    Ok(stored_value)
 }
 
 #[test]
@@ -254,17 +267,17 @@ fn grouped_flags_attached() {
                 .build()
                 .unwrap(),
         );
-    let out = parse_grouped_flags("-abc", &cli, None, None);
+    let out = parse_grouped_flags("-abc", &cli, None, None).unwrap();
     assert_eq!(out.len(), 3);
-    let out = parse_grouped_flags("-abs=1", &cli, None, None);
+    let out = parse_grouped_flags("-abs=1", &cli, None, None).unwrap();
     assert_eq!(out.len(), 3);
-    let out = parse_grouped_flags("-abc", &cli, None, None);
+    let out = parse_grouped_flags("-abc", &cli, None, None).unwrap();
     assert_eq!(out.len(), 3);
-    let out = parse_grouped_flags("-ao=1", &cli, None, None);
+    let out = parse_grouped_flags("-ao=1", &cli, None, None).unwrap();
     assert_eq!(out.len(), 2);
-    let out = parse_grouped_flags("-ao", &cli, None, None);
+    let out = parse_grouped_flags("-ao", &cli, None, None).unwrap();
     assert_eq!(out.len(), 2);
-    let out = parse_grouped_flags("-ar=1", &cli, None, None);
+    let out = parse_grouped_flags("-ar=1", &cli, None, None).unwrap();
     assert_eq!(out.len(), 2);
 }
 
@@ -279,6 +292,6 @@ fn single_flag_detached() {
             .build()
             .unwrap(),
     );
-    let out = parse_grouped_flags("-a", &cli, Some("1"), None);
+    let out = parse_grouped_flags("-a", &cli, Some("1"), None).unwrap();
     assert_eq!(out.len(), 1);
 }

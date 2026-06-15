@@ -143,6 +143,7 @@ impl Store {
 }
 
 /// Write the message into stderr and exit
+#[allow(dead_code)]
 pub fn write_err_and_exit(msg: &str) {
     eprintln!("{}", msg);
     std::process::exit(1);

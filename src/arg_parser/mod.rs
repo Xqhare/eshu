@@ -1,15 +1,16 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    Cli,
+    Cli, EshuErrorKind,
     arg_parser::{
         grouped::parse_grouped_flags,
         parser::{insert_long_flag, parse_long_flag, parse_short_flag, parse_subcommand},
     },
     cli::builder::CliBuilder,
     error::EshuResult,
-    utils::{Store, starts_with_dash, write_err_and_exit},
+    utils::{Store, starts_with_dash},
 };
+use nemesis::NemesisError;
 
 mod grouped;
 mod parser;
@@ -85,7 +86,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                     None => unknown_args.push(arg.to_string()),
                 },
                 State::Group => {
-                    let grouped_flags = parse_grouped_flags(arg, &cli_builder, next_arg, buf);
+                    let grouped_flags = parse_grouped_flags(arg, &cli_builder, next_arg, buf)?;
                     let mut consumed_next = false;
                     if !arg.contains('=') {
                         for (_, (_, store)) in &grouped_flags {
@@ -125,12 +126,10 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
     let unknown_args: Option<Vec<String>> = if cli_builder.handle_unknown_args {
         Some(unknown_args)
     } else if unknown_args.len() > 0 {
-        write_err_and_exit(&format!(
-            "Usage error: Unknown argument(s): {}",
-            unknown_args.join("; ")
+        return Err(NemesisError::new(
+            "eshu::parser",
+            EshuErrorKind::UnknownArgument(unknown_args.join("; ")),
         ));
-        // Program will exit, but compiler doesn't know
-        None
     } else {
         None
     };
