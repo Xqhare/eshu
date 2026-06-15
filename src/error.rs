@@ -16,6 +16,10 @@ pub enum EshuErrorKind {
     EmptyString(String),
     /// Invalid character or format in program, flag, or subcommand name
     InvalidName(String),
+    /// Invalid character or format specifically in a flag name
+    InvalidFlagName(String),
+    /// Duplicate flag or command definition
+    Duplicate(String),
     /// Developer configuration error: no flags or subcommands registered on a non-basic CLI
     NoFlagsOrCommands,
     /// One or more unknown arguments were passed on the command line
@@ -38,7 +42,9 @@ impl fmt::Display for EshuErrorKind {
             Self::Generic(msg)
             | Self::Storage(msg)
             | Self::EmptyString(msg)
-            | Self::InvalidName(msg) => {
+            | Self::InvalidName(msg)
+            | Self::InvalidFlagName(msg)
+            | Self::Duplicate(msg) => {
                 write!(f, "{msg}")
             }
             Self::NoFlagsOrCommands => {

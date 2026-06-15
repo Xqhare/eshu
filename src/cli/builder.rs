@@ -233,6 +233,24 @@ impl<'a> CliBuilder<'a> {
                 EshuErrorKind::NoFlagsOrCommands,
             ));
         }
+        let mut flag_names = std::collections::HashSet::new();
+        let mut flag_chars = std::collections::HashSet::new();
+        for flag in &self.flags {
+            if !flag_names.insert(&flag.long_flag) {
+                return Err(NemesisError::new(
+                    "eshu::builder",
+                    EshuErrorKind::Duplicate(format!("Duplicate Flag: {}", flag.long_flag)),
+                ));
+            }
+            if let Some(c) = flag.flag_char {
+                if !flag_chars.insert(c) {
+                    return Err(NemesisError::new(
+                        "eshu::builder",
+                        EshuErrorKind::Duplicate(format!("Duplicate Short Flag Char: {}", c)),
+                    ));
+                }
+            }
+        }
         Ok(())
     }
 }

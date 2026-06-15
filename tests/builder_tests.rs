@@ -131,4 +131,81 @@ fn test_programmatic_downcast() {
     }
 }
 
+#[test]
+fn duplicate_flag_name_error() {
+    let cli = Cli::new("test-cli")
+        .with_version("0.0.0")
+        .add_flag(
+            CliFlag::new("flag")
+                .with_about("f", "f")
+                .build()
+                .unwrap(),
+        )
+        .add_flag(
+            CliFlag::new("flag")
+                .with_about("duplicate", "duplicate")
+                .build()
+                .unwrap(),
+        )
+        .try_parse_custom(vec!["test-cli".to_string()]);
+
+    assert!(cli.is_err());
+    let err = cli.unwrap_err();
+    let leaf_err = err.downcast_ref::<eshu::EshuErrorKind>().unwrap();
+    match leaf_err {
+        eshu::EshuErrorKind::Duplicate(msg) => {
+            assert!(msg.contains("Flag"));
+        }
+        _ => panic!("Expected EshuErrorKind::Duplicate"),
+    }
+}
+
+#[test]
+fn duplicate_flag_char_error() {
+    let cli = Cli::new("test-cli")
+        .with_version("0.0.0")
+        .add_flag(
+            CliFlag::new("flag1")
+                .with_flag_char('f')
+                .with_about("f", "f")
+                .build()
+                .unwrap(),
+        )
+        .add_flag(
+            CliFlag::new("flag2")
+                .with_flag_char('f')
+                .with_about("duplicate char", "duplicate char")
+                .build()
+                .unwrap(),
+        )
+        .try_parse_custom(vec!["test-cli".to_string()]);
+
+    assert!(cli.is_err());
+    let err = cli.unwrap_err();
+    let leaf_err = err.downcast_ref::<eshu::EshuErrorKind>().unwrap();
+    match leaf_err {
+        eshu::EshuErrorKind::Duplicate(msg) => {
+            assert!(msg.contains("Short Flag Char"));
+        }
+        _ => panic!("Expected EshuErrorKind::Duplicate"),
+    }
+}
+
+#[test]
+fn invalid_flag_name_whitespace() {
+    let flag = CliFlag::new("invalid name")
+        .with_about("f", "f")
+        .build();
+    assert!(flag.is_err());
+    let err = flag.unwrap_err();
+    let leaf_err = err.downcast_ref::<eshu::EshuErrorKind>().unwrap();
+    match leaf_err {
+        eshu::EshuErrorKind::InvalidFlagName(msg) => {
+            assert!(msg.contains("whitespace"));
+        }
+        _ => panic!("Expected EshuErrorKind::InvalidFlagName"),
+    }
+}
+
+
 

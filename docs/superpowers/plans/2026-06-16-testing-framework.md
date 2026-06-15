@@ -985,7 +985,7 @@
 **Files:**
 - Modify: `tests/builder_tests.rs`
 
-- [ ] **Step 1: Write expanded builder validation tests**
+- [x] **Step 1: Write expanded builder validation tests**
   Add the new tests to the end of `tests/builder_tests.rs`:
   ```rust
   #[test]
@@ -1065,11 +1065,11 @@
   }
   ```
 
-- [ ] **Step 2: Run builder tests**
+- [x] **Step 2: Run builder tests**
   Run: `cargo test --test builder_tests`
   Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run:
   ```bash
   git add tests/builder_tests.rs

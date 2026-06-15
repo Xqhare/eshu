@@ -283,7 +283,7 @@ impl CliFlagBuilder {
             } else {
                 return Err(NemesisError::new(
                     "eshu::builder",
-                    EshuErrorKind::InvalidName(format!(
+                    EshuErrorKind::InvalidFlagName(format!(
                         "Flag name must not start with a dash. Got: {}",
                         self.long_flag
                     )),
@@ -293,7 +293,7 @@ impl CliFlagBuilder {
         if contains_whitespace(&self.long_flag) {
             return Err(NemesisError::new(
                 "eshu::builder",
-                EshuErrorKind::InvalidName("Flag name must not contain whitespace".to_string()),
+                EshuErrorKind::InvalidFlagName("Flag name must not contain whitespace".to_string()),
             ));
         }
         if self.short_about.is_empty() || self.long_about.is_empty() {
