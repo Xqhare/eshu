@@ -1,4 +1,8 @@
-use crate::{Cli, CliFlag, error::EshuResult};
+use crate::{
+    Cli, CliFlag,
+    error::{EshuErrorKind, EshuResult},
+};
+use nemesis::NemesisError;
 
 /// Define a custom command
 pub trait CliCommand<'c> {
@@ -106,13 +110,22 @@ impl CliCmdBuilder {
     /// If the name or about is empty or if no flags or subcommands are defined
     pub fn build(self) -> EshuResult<CliCmd> {
         if self.name.is_empty() {
-            return Err(crate::EshuError::Generic("ERR".to_string()));
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::EmptyString("Command name must not be empty".to_string()),
+            ));
         }
         if self.short_about.is_empty() {
-            return Err(crate::EshuError::Generic("ERR".to_string()));
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::EmptyString("Command description must not be empty".to_string()),
+            ));
         }
         if self.flags.is_empty() && self.subcommands.is_empty() {
-            return Err(crate::EshuError::Generic("ERR".to_string()));
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::NoFlagsOrCommands,
+            ));
         }
         Ok(CliCmd {
             name: self.name,
