@@ -55,7 +55,7 @@
 **Files:**
 - Modify: `tests/parser_tests/basic.rs`
 
-- [ ] **Step 1: Move basic tests into `tests/parser_tests/basic.rs`**
+- [x] **Step 1: Move basic tests into `tests/parser_tests/basic.rs`**
   Add the migrated tests to `tests/parser_tests/basic.rs`:
   ```rust
   use eshu::{Cli, CliFlag};
@@ -133,11 +133,11 @@
   }
   ```
 
-- [ ] **Step 2: Run basic tests to verify they pass**
+- [x] **Step 2: Run basic tests to verify they pass**
   Run: `cargo test --test parser_tests basic`
   Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run:
   ```bash
   git add tests/parser_tests/basic.rs
