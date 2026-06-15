@@ -420,7 +420,7 @@
 **Files:**
 - Modify: `tests/parser_tests/regression.rs`
 
-- [ ] **Step 1: Move regression tests into `tests/parser_tests/regression.rs`**
+- [x] **Step 1: Move regression tests into `tests/parser_tests/regression.rs`**
   Add the migrated tests:
   ```rust
   use eshu::{Cli, CliFlag, StoreSyntax, StoreType};
@@ -634,11 +634,11 @@
   }
   ```
 
-- [ ] **Step 2: Run regression tests to verify they pass**
+- [x] **Step 2: Run regression tests to verify they pass**
   Run: `cargo test --test parser_tests regression`
   Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run:
   ```bash
   git add tests/parser_tests/regression.rs
