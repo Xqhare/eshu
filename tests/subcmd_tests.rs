@@ -1,10 +1,10 @@
-use eshu::{Cli, CliCmd, CliCommand, CliFlag, StoreSyntax, StoreType};
+use eshu::{Cli, CliCmd, CliFlag};
 
 #[test]
 fn simple_cmd() {
     let cli = Cli::new("test-cli")
         .with_version("0.0.0")
-        .add_command(Box::new(
+        .add_command(std::rc::Rc::new(
             CliCmd::new("cmd")
                 .with_about("short about", "long about")
                 .add_flag(
@@ -35,7 +35,7 @@ fn simple_cmd() {
 fn simple_cmd_empty_input() {
     let cli = Cli::new("test-cli")
         .with_version("0.0.0")
-        .add_command(Box::new(
+        .add_command(std::rc::Rc::new(
             CliCmd::new("cmd")
                 .with_about("short about", "long about")
                 .add_flag(
