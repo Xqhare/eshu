@@ -1,10 +1,23 @@
-use std::rc::Rc;
+use std::{fmt::Debug, rc::Rc};
 
 use crate::{
     Cli, CliFlag,
     error::{EshuErrorKind, EshuResult},
 };
 use nemesis::NemesisError;
+
+impl<'a> Debug for dyn CliCommand<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CliCommand")
+            .field("name", &self.name())
+            .field("short_about", &self.short_about())
+            .field("long_about", &self.long_about())
+            .field("flags", &self.flags())
+            .field("subcommands", &self.subcommands())
+            .field("execute", &"function")
+            .finish()
+    }
+}
 
 /// Define a custom command
 pub trait CliCommand<'c> {

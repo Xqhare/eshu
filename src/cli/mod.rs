@@ -14,6 +14,7 @@ mod help;
     clippy::struct_field_names,
     reason = "Easier to reason about; Holds itself"
 )]
+#[derive(Debug)]
 pub struct Cli<'a> {
     /// The name of the program
     pub(crate) name: String,

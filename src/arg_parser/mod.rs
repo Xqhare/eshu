@@ -106,14 +106,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                                 stray_positional_args.append(buf);
                                 break;
                             } else {
-                                // Should never happen
-                                return Err(NemesisError::new(
-                                    "eshu::parser",
-                                    EshuErrorKind::MissingArgument {
-                                        flag: arg.clone(),
-                                        expected_syntax: "--store-type".to_string(),
-                                    },
-                                ));
+                                // Do nothing
                             }
                         }
                     }

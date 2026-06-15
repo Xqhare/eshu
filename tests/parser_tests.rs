@@ -516,7 +516,10 @@ fn test_missing_argument_long_flag() {
     assert_eq!(err.source_name(), "eshu::parser");
     let leaf_err = err.downcast_ref::<eshu::EshuErrorKind>().unwrap();
     match leaf_err {
-        eshu::EshuErrorKind::MissingArgument { flag, expected_syntax } => {
+        eshu::EshuErrorKind::MissingArgument {
+            flag,
+            expected_syntax,
+        } => {
             assert_eq!(flag, "--port");
             assert_eq!(expected_syntax, "--port VALUE");
         }
@@ -542,7 +545,10 @@ fn test_missing_argument_short_flag() {
     assert_eq!(err.source_name(), "eshu::parser");
     let leaf_err = err.downcast_ref::<eshu::EshuErrorKind>().unwrap();
     match leaf_err {
-        eshu::EshuErrorKind::MissingArgument { flag, expected_syntax } => {
+        eshu::EshuErrorKind::MissingArgument {
+            flag,
+            expected_syntax,
+        } => {
             assert_eq!(flag, "-p (--port)");
             assert_eq!(expected_syntax, "-p VALUE");
         }
