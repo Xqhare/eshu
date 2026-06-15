@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, env::args_os};
 
 use athena::{Array, Object, XffValue};
 
@@ -29,7 +29,7 @@ pub fn is_positional(arg: &str) -> bool {
 /// Assumes the program name is the first argument
 /// Also accepts all limitations of using `OsString` and lossy conversion to `String`
 pub fn get_params_make_args() -> Vec<String> {
-    let args: Vec<String> = std::env::args_os()
+    let args: Vec<String> = args_os()
         .skip(1) // Assume the program name is the first argument, *ALWAYS*;
         .map(|s| s.to_string_lossy().to_string()) // There will be edge cases. Especially
         // cross platform.
@@ -47,7 +47,7 @@ pub type RoffString = String;
 /// Implements `Into<XffValue>`.
 ///
 /// * `Exists` - If the flag does not require a store, this is returned (This is used to indicate
-/// that a flag was passed in or exists in the argument stream).
+///   that a flag was passed in or exists in the argument stream).
 /// * `Value` - A `Vec<String>` (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed values.)
 /// * `KeyValue` - A `BTreeMap<String, String>` (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed key-value pairs.)
 #[derive(Debug)]
@@ -66,21 +66,22 @@ pub enum Store {
     KeyValue(BTreeMap<String, String>),
 }
 
-impl Into<XffValue> for Store {
-    fn into(self) -> XffValue {
-        match self {
+impl From<Store> for XffValue {
+    #[inline]
+    fn from(val: Store) -> Self {
+        match val {
             Store::Exists => XffValue::from(true),
             Store::Value(val) => {
                 let mut out = Array::new();
-                for val in val {
-                    out.push(XffValue::from(val));
+                for inner_val in val {
+                    out.push(XffValue::from(inner_val));
                 }
                 XffValue::from(out)
             }
             Store::KeyValue(val) => {
                 let mut out = Object::new();
-                for (key, val) in val {
-                    out.insert(key, XffValue::from(val));
+                for (key, inner_val) in val {
+                    out.insert(key, XffValue::from(inner_val));
                 }
                 XffValue::from(out)
             }
@@ -95,56 +96,49 @@ impl Store {
     pub fn exists(&self) -> bool {
         match self {
             Store::Exists => true,
-            _ => false,
+            Store::Value(_) | Store::KeyValue(_) => false,
         }
     }
     /// Check if the store is storing a value
     pub fn is_value(&self) -> bool {
         match self {
             Store::Value(_) => true,
-            _ => false,
+            Store::Exists | Store::KeyValue(_) => false,
         }
     }
     /// Check if the store is storing a key-value pair
     pub fn is_key_value(&self) -> bool {
         match self {
             Store::KeyValue(_) => true,
-            _ => false,
+            Store::Exists | Store::Value(_) => false,
         }
     }
     /// Get the stored value
     pub fn as_value(&self) -> Option<&Vec<String>> {
         match self {
             Store::Value(val) => Some(val),
-            _ => None,
+            Store::Exists | Store::KeyValue(_) => None,
         }
     }
     /// Get the stored value as a mutable reference
     pub fn as_mut_value(&mut self) -> Option<&mut Vec<String>> {
         match self {
             Store::Value(val) => Some(val),
-            _ => None,
+            Store::Exists | Store::KeyValue(_) => None,
         }
     }
     /// Get the stored key-value pair
     pub fn as_key_value(&self) -> Option<&BTreeMap<String, String>> {
         match self {
             Store::KeyValue(val) => Some(val),
-            _ => None,
+            Store::Exists | Store::Value(_) => None,
         }
     }
     /// Get the stored key-value pair as a mutable reference
     pub fn as_mut_key_value(&mut self) -> Option<&mut BTreeMap<String, String>> {
         match self {
             Store::KeyValue(val) => Some(val),
-            _ => None,
+            Store::Exists | Store::Value(_) => None,
         }
     }
-}
-
-/// Write the message into stderr and exit
-#[allow(dead_code)]
-pub fn write_err_and_exit(msg: &str) {
-    eprintln!("{}", msg);
-    std::process::exit(1);
 }
