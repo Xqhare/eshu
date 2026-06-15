@@ -159,6 +159,7 @@ impl Indentation {
 /// Helper struct for writing the help buffer
 ///
 /// Takes care of indentation, wrapping, etc
+#[expect(clippy::partial_pub_fields, reason = "API")]
 pub struct TermWriter {
     /// The buffer, use as final output
     pub buffer: String,
@@ -206,6 +207,7 @@ impl TermWriter {
         unused_assignments,
         reason = "`line_start = true` should be needed for the next word loop iteration"
     )]
+    #[expect(clippy::else_if_without_else, reason = "Its fine, dont do anything")]
     pub fn wrap_text(&mut self, text: &str, target_level: usize) {
         for line in text.lines() {
             let mut line_start = true;

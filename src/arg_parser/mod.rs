@@ -20,6 +20,10 @@ mod parser;
 #[expect(clippy::needless_pass_by_value, reason = "API")]
 #[expect(clippy::too_many_lines, reason = "Parsing is complex")]
 #[expect(clippy::cognitive_complexity, reason = "Parsing is complex")]
+#[expect(
+    clippy::else_if_without_else,
+    reason = "Doing nothing is intended here"
+)]
 pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cli> {
     cli_builder.validate_self()?;
 
@@ -101,6 +105,15 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                                 let buf = &mut buf.to_vec();
                                 stray_positional_args.append(buf);
                                 break;
+                            } else {
+                                // Should never happen
+                                return Err(NemesisError::new(
+                                    "eshu::parser",
+                                    EshuErrorKind::MissingArgument {
+                                        flag: arg.clone(),
+                                        expected_syntax: "--store-type".to_string(),
+                                    },
+                                ));
                             }
                         }
                     }
@@ -117,9 +130,8 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                     {
                         sub_cmd_cli.insert(name, sub_cli);
                         break;
-                    } else {
-                        stray_positional_args.push(arg.clone());
                     }
+                    stray_positional_args.push(arg.clone());
                 }
             }
             if buf.is_some() {

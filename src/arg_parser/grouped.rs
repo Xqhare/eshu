@@ -104,36 +104,31 @@ pub fn parse_grouped_flags(
                                 ));
                             }
                         }
-                    } else {
-                        match flag.store_type {
-                            Some(StoreType::Value) => {
-                                out.push((
-                                    flag.long_flag.clone(),
-                                    (index, Store::Value(stored_value)),
-                                ));
+                    }
+                    match flag.store_type {
+                        Some(StoreType::Value) => {
+                            out.push((flag.long_flag.clone(), (index, Store::Value(stored_value))));
+                        }
+                        Some(StoreType::KeyValue) => {
+                            let mut map = BTreeMap::new();
+                            for arg in stored_value {
+                                let (key, val) = if let Some((key, value)) = arg.split_once('=') {
+                                    (key, value)
+                                } else {
+                                    return Err(NemesisError::new(
+                                        "eshu::parser",
+                                        EshuErrorKind::MissingArgument {
+                                            flag: format!("-{} (--{})", arg, flag.long_flag),
+                                            expected_syntax: "-key=value".to_string(),
+                                        },
+                                    ));
+                                };
+                                map.insert(key.to_string(), val.to_string());
                             }
-                            Some(StoreType::KeyValue) => {
-                                let mut map = BTreeMap::new();
-                                for arg in stored_value {
-                                    let (key, val) = if let Some((key, value)) = arg.split_once('=')
-                                    {
-                                        (key, value)
-                                    } else {
-                                        return Err(NemesisError::new(
-                                            "eshu::parser",
-                                            EshuErrorKind::MissingArgument {
-                                                flag: format!("-{} (--{})", arg, flag.long_flag),
-                                                expected_syntax: "-key=value".to_string(),
-                                            },
-                                        ));
-                                    };
-                                    map.insert(key.to_string(), val.to_string());
-                                }
-                                out.push((flag.long_flag.clone(), (index, Store::KeyValue(map))));
-                            }
-                            None => {
-                                // Don't do anything
-                            }
+                            out.push((flag.long_flag.clone(), (index, Store::KeyValue(map))));
+                        }
+                        None => {
+                            // Don't do anything
                         }
                     }
                 } else {

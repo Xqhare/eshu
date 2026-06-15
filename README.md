@@ -1,9 +1,5 @@
 # Eshu
 
-TODO:
-
-- Consider ArgosCI integration
-
 A zero-dependency Rust library for building robust CLI tools with automatic help and man-page generation.
 
 It follows my "All code written by me or part of rust's standard library and libc" philosophy.
@@ -25,7 +21,7 @@ You can learn more about that [here](https://blog.xqhare.net/posts/why_solve_pro
 ## Features
 
 - _**No dependencies**_: All code is written by me or part of std.
-- _**XffValue Integration**_: Easy casting of returned values into `XffValues`.
+- _**`XffValue` Integration**_: Easy casting of returned values into `XffValues`.
 
 ## Naming
 

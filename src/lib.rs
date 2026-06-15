@@ -17,12 +17,17 @@
     clippy::exhaustive_enums,
     clippy::min_ident_chars,
     clippy::missing_trait_methods,
-    clippy::impl_trait_in_params,
     clippy::as_conversions,
-    clippy::cast_lossless,
     clippy::shadow_reuse,
     clippy::blanket_clippy_restriction_lints,
     clippy::doc_include_without_cfg,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core,
+    clippy::exit,
+    clippy::pub_use,
+    clippy::field_scoped_visibility_modifiers,
+    clippy::single_char_lifetime_names,
+    clippy::mod_module_files,
     reason = "Ignored warnings"
 )]
 

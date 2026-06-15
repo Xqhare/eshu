@@ -63,6 +63,10 @@ pub fn insert_long_flag(
 #[expect(clippy::shadow_same, reason = "Shadowing is fine here")]
 #[expect(clippy::expect_used, reason = "Dynamic check")]
 #[expect(clippy::type_complexity, reason = "Parsing is complex")]
+#[expect(
+    clippy::else_if_without_else,
+    reason = "Doing nothing is intended here"
+)]
 pub fn parse_long_flag(
     arg: &str,
     cli: &CliBuilder,
@@ -93,9 +97,8 @@ pub fn parse_long_flag(
                     next_arg,
                     detached_list_args,
                 )?));
-            } else {
-                return Ok(Some((flag.long_flag.clone(), (index, Store::Exists))));
             }
+            return Ok(Some((flag.long_flag.clone(), (index, Store::Exists))));
         } else if flag.long_flag.starts_with(parsed_long_flag) {
             partials.push((flag.long_flag.as_str(), index));
         }
@@ -111,12 +114,11 @@ pub fn parse_long_flag(
                 next_arg,
                 detached_list_args,
             )?));
-        } else {
-            return Ok(Some((
-                partial.long_flag.clone(),
-                (partials[0].1, Store::Exists),
-            )));
         }
+        return Ok(Some((
+            partial.long_flag.clone(),
+            (partials[0].1, Store::Exists),
+        )));
     }
 
     Ok(None)
@@ -131,7 +133,6 @@ fn handle_store(
     next_arg: Option<&str>,
     detached_list_args: Option<&[String]>,
 ) -> Result<(String, (usize, Store)), NemesisError> {
-    let mut store = Store::Exists;
     let mut value = None;
 
     let flag_store_syntax = if let Some(syntax) = cli_flag.store_syntax {
@@ -185,6 +186,7 @@ fn handle_store(
         ));
     }
 
+    let store;
     if let Some(detached_list_args) = detached_list_args {
         let flag_store_type = if let Some(store_type) = cli_flag.store_type {
             store_type
@@ -251,6 +253,10 @@ fn handle_store(
                 store = Store::KeyValue(BTreeMap::from([(key.to_string(), val.to_string())]));
             }
         }
+    } else {
+        // Should be unreachable
+        debug_assert!(false, "This should be unreachable");
+        store = Store::Exists;
     }
 
     Ok((cli_flag.long_flag.clone(), (index, store)))
