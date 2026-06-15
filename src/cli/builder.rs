@@ -243,10 +243,11 @@ impl<'a> CliBuilder<'a> {
                 ));
             }
             if let Some(c) = flag.flag_char {
-                if !flag_chars.insert(c) {
+                let duplicate = !flag_chars.insert(c);
+                if duplicate {
                     return Err(NemesisError::new(
                         "eshu::builder",
-                        EshuErrorKind::Duplicate(format!("Duplicate Short Flag Char: {}", c)),
+                        EshuErrorKind::Duplicate(format!("Duplicate Short Flag Char: {c}")),
                     ));
                 }
             }
