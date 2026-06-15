@@ -10,6 +10,10 @@ pub mod builder;
 mod help;
 
 /// Generate a command line interface
+#[expect(
+    clippy::struct_field_names,
+    reason = "Easier to reason about; Holds itself"
+)]
 pub struct Cli<'a> {
     /// The name of the program
     pub(crate) name: String,
@@ -48,6 +52,9 @@ impl<'a> Cli<'a> {
     ///
     /// let cli = Cli::new("my-cli");
     /// ```
+    #[must_use]
+    #[inline]
+    #[expect(clippy::new_ret_no_self, reason = "Builder pattern")]
     pub fn new<S: Into<String>>(name: S) -> CliBuilder<'a> {
         CliBuilder::new(name)
     }
@@ -59,6 +66,8 @@ impl<'a> Cli<'a> {
     /// # Returns
     ///
     /// * `&Vec<String>`
+    #[must_use]
+    #[inline]
     pub fn get_stray_positional_args(&self) -> &Vec<String> {
         &self.stray_positional_args
     }
@@ -68,6 +77,8 @@ impl<'a> Cli<'a> {
     /// # Arguments
     ///
     /// * `flag_name` - The name of the flag to check for (long form, e.g. `--flag-name`)
+    #[must_use]
+    #[inline]
     pub fn is_flag_entered(&self, flag_name: &str) -> bool {
         self.entered_flags.contains_key(flag_name)
     }
@@ -77,6 +88,8 @@ impl<'a> Cli<'a> {
     /// # Arguments
     ///
     /// * `flag_name` - The name of the flag to get the store for (long form, e.g. `--flag-name`)
+    #[must_use]
+    #[inline]
     pub fn get_flag_store(&self, flag_name: &str) -> Option<&Store> {
         self.entered_flags.get(flag_name).map(|(_, store)| store)
     }
@@ -84,11 +97,15 @@ impl<'a> Cli<'a> {
     /// Get the unknown arguments
     ///
     /// Only available if `handle_unknown_args` is `true`
+    #[must_use]
+    #[inline]
     pub fn get_unknown_args(&self) -> Option<&Vec<String>> {
         self.unknown_args.as_ref()
     }
 
     /// Check if a subcommand was entered
+    #[must_use]
+    #[inline]
     pub fn is_subcommand_entered(&self, subcommand_name: &str) -> bool {
         self.sub_cmd_cli.contains_key(subcommand_name)
     }
@@ -96,6 +113,8 @@ impl<'a> Cli<'a> {
     /// Get the cli of a subcommand
     ///
     /// Will only return `Some` if the subcommand was entered
+    #[must_use]
+    #[inline]
     pub fn get_subcommand_cli(&self, subcommand_name: &str) -> Option<&Cli<'a>> {
         self.sub_cmd_cli.get(subcommand_name)
     }
@@ -105,13 +124,21 @@ impl<'a> Cli<'a> {
     /// The returned string is a valid manpage in `roff` format.
     ///
     /// To learn more, check out the [man(7) man page](https://man7.org/linux/man-pages/man7/man.7.html) and the [man(1) man page](https://man7.org/linux/man-pages/man1/man.1.html).
+    #[must_use]
+    #[inline]
+    #[expect(clippy::todo, reason = "TODO: Create a valid manpage for the cli")]
     pub fn make_manpage(&self) -> RoffString {
         todo!("create a valid manpage for the cli - complex, do last")
     }
 
     /// Create the help string
     ///
+    /// # Returns
+    ///
     /// The returned string is the same as what is printed to stdout when using the `--help` flag
+    /// or the `-h` flag
+    #[must_use]
+    #[inline]
     pub fn make_help_string(&self) -> String {
         help(self)
     }
