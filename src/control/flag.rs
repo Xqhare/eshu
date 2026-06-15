@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{self, Debug, Formatter};
 
 use crate::{
     StoreSyntax, StoreType,
@@ -31,9 +31,9 @@ pub struct CliFlag {
     pub(crate) required_store: bool,
     /// Does the flag accept passed arguments
     pub(crate) storing: bool,
-    /// The type of the store (Value or KeyValue)
+    /// The type of the store (`Value` or `KeyValue`)
     pub(crate) store_type: Option<StoreType>,
-    /// The syntax of the store (Attached or Detached)
+    /// The syntax of the store (`Attached` or `Detached`)
     pub(crate) store_syntax: Option<StoreSyntax>,
 }
 
@@ -55,6 +55,9 @@ impl CliFlag {
     ///
     /// let flag = CliFlag::new("flag-name");
     /// ```
+    #[inline]
+    #[must_use]
+    #[expect(clippy::new_ret_no_self, reason = "Builder pattern")]
     pub fn new(name: &str) -> CliFlagBuilder {
         CliFlagBuilder::new(name)
     }
@@ -74,8 +77,8 @@ impl CliFlag {
     /// * `long_about` - The long about or help text for the flag. (Will be always used together with `short_about` if used at all).
     /// * `required_store` - Does the flag require passed arguments (If set to true, `storing` must also be set to true).
     /// * `storing` - Does the flag accept passed arguments (Only setting this to true means that the flag accepts optional arguments).
-    /// * `store_type` - The type of the store (Value or KeyValue). Only relevant if `storing` is set to true.
-    /// * `store_syntax` - The syntax of the store (Attached or Detached). Only relevant if `storing` is set to true.
+    /// * `store_type` - The type of the store (`Value` or `KeyValue`). Only relevant if `storing` is set to true.
+    /// * `store_syntax` - The syntax of the store (`Attached` or `Detached`). Only relevant if `storing` is set to true.
     ///
     /// # Returns
     ///
@@ -98,6 +101,13 @@ impl CliFlag {
     /// );
     /// assert!(flag.is_ok());
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// * `EshuErrorKind::EmptyString` - If `long_flag` is empty
+    /// * `EshuErrorKind::Storage` - If `required_store` is set to true and `storing` is set to false
+    #[expect(clippy::too_many_arguments, reason = "Needed for full control")]
+    #[inline]
     pub fn new_custom(
         flag_char: Option<char>,
         long_flag: String,
@@ -120,18 +130,20 @@ impl CliFlag {
                 EshuErrorKind::Storage("Flags that require arguments must accept them".to_string()),
             ));
         }
-        if let Some(char) = flag_char {
-            if !char.is_ascii_alphabetic() {
-                return Err(NemesisError::new(
-                    "eshu::builder",
-                    EshuErrorKind::InvalidName("Short flag must be a letter".to_string()),
-                ));
-            }
+        if let Some(char) = flag_char
+            && !char.is_ascii_alphabetic()
+        {
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::InvalidName("Short flag must be a letter".to_string()),
+            ));
         }
         if starts_with_dash(&long_flag) {
             return Err(NemesisError::new(
                 "eshu::builder",
-                EshuErrorKind::InvalidName("Flag name must not start with a dash or double dash".to_string()),
+                EshuErrorKind::InvalidName(
+                    "Flag name must not start with a dash or double dash".to_string(),
+                ),
             ));
         }
         if contains_whitespace(&long_flag) {
@@ -163,7 +175,8 @@ impl CliFlag {
 }
 
 impl Debug for CliFlag {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("CliFlag")
             .field("flag_char", &self.flag_char)
             .field("name", &self.long_flag)
@@ -173,6 +186,8 @@ impl Debug for CliFlag {
             )
             .field("storing", &self.storing)
             .field("required_store", &self.required_store)
+            .field("store_type", &self.store_type)
+            .field("store_syntax", &self.store_syntax)
             .finish()
     }
 }
