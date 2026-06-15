@@ -113,7 +113,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                 }
                 State::Positional => {
                     if let Some((name, sub_cli)) =
-                        parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec())?
+                        parse_subcommand(arg, &cli_builder, &params[params_index..])?
                     {
                         sub_cmd_cli.insert(name, sub_cli);
                         break;
