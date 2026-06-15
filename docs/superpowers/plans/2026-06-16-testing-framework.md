@@ -733,7 +733,7 @@
 **Files:**
 - Modify: `tests/parser_tests/key_value.rs`
 
-- [ ] **Step 1: Write key-value parsing tests**
+- [x] **Step 1: Write key-value parsing tests**
   Add the following new test cases to `tests/parser_tests/key_value.rs`:
   ```rust
   use eshu::{Cli, CliFlag, StoreSyntax, StoreType, EshuErrorKind};
@@ -821,11 +821,11 @@
   }
   ```
 
-- [ ] **Step 2: Run key-value tests to verify they pass**
+- [x] **Step 2: Run key-value tests to verify they pass**
   Run: `cargo test --test parser_tests key_value`
   Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run:
   ```bash
   git add tests/parser_tests/key_value.rs
