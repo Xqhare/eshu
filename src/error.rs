@@ -1,71 +1,68 @@
 use std::fmt;
+use nemesis::NemesisError;
 
-pub type EshuResult<T> = Result<T, EshuError>;
+/// Crate-level Result type using NemesisError
+pub type EshuResult<T> = Result<T, NemesisError>;
 
-/// The error type
+/// The structured leaf error type for eshu parser/builder operations.
 #[derive(Debug)]
-pub enum EshuError {
-    /// Generic error; Only for internal / development use
+pub enum EshuErrorKind {
+    /// Generic or internal development error
     Generic(String),
-    /// Storage error
+    /// Configuration or storage syntax validation error
     Storage(String),
-    /// Empty string
+    /// An empty string was provided where a value was required
     EmptyString(String),
-    /// Invalid name
+    /// Invalid character or format in program, flag, or subcommand name
     InvalidName(String),
-    /// No flags or commands during `Cli::parse` validation pass
+    /// Developer configuration error: no flags or subcommands registered on a non-basic CLI
     NoFlagsOrCommands,
-    /// I-O error wrapper
+    /// One or more unknown arguments were passed on the command line
+    UnknownArgument(String),
+    /// A flag requiring an argument was passed without one
+    MissingArgument {
+        flag: String,
+        expected_syntax: String,
+    },
+    /// Wrapper for standard I/O errors
     Io(std::io::Error),
-    /// Parsing error wrapper
-    Parsing(Parsing),
 }
 
-/// Parsing error
-#[derive(Debug)]
-pub enum Parsing {
-    /// Stray dash
-    StrayDash,
-    /// Unknown argument
-    UnknownArg(String),
-}
-
-impl fmt::Display for Parsing {
+impl fmt::Display for EshuErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Parsing::StrayDash => write!(f, "Stray dash"),
-            Parsing::UnknownArg(arg) => write!(f, "Unknown argument: {}", arg),
-        }
-    }
-}
-
-impl fmt::Display for EshuError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            EshuError::Generic(msg) => write!(f, "{}", msg),
-            EshuError::NoFlagsOrCommands => {
+            Self::Generic(msg) | Self::Storage(msg) | Self::EmptyString(msg) | Self::InvalidName(msg) => {
+                write!(f, "{}", msg)
+            }
+            Self::NoFlagsOrCommands => {
                 write!(f, "No flags or commands set, add at least one.")
             }
-            EshuError::InvalidName(msg) => write!(f, "{}", msg),
-            EshuError::Parsing(msg) => write!(f, "{}", msg),
-            EshuError::Storage(msg) => write!(f, "{}", msg),
-            EshuError::EmptyString(msg) => write!(f, "{}", msg),
-            EshuError::Io(err) => write!(f, "{}", err),
+            Self::UnknownArgument(args) => {
+                write!(f, "Usage error: Unknown argument(s): {}", args)
+            }
+            Self::MissingArgument { flag, expected_syntax } => {
+                write!(
+                    f,
+                    "Usage error: Flag '{}' requires an argument. Please provide one via the following syntax: '{}'",
+                    flag, expected_syntax
+                )
+            }
+            Self::Io(err) => write!(f, "{}", err),
         }
     }
 }
 
-impl std::error::Error for EshuError {
+impl std::error::Error for EshuErrorKind {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            EshuError::Io(err) => Some(err),
+            Self::Io(err) => Some(err),
             _ => None,
         }
     }
 }
 
-impl From<std::io::Error> for EshuError {
+impl From<std::io::Error> for EshuErrorKind {
     fn from(err: std::io::Error) -> Self {
-        EshuError::Io(err)
+        Self::Io(err)
     }
 }
