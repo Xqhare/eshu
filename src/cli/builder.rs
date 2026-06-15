@@ -1,3 +1,5 @@
+use std::{process::exit, rc::Rc};
+
 use crate::{
     Cli, CliCommand, CliFlag, EshuErrorKind,
     arg_parser::parse_args,
@@ -6,12 +8,13 @@ use crate::{
 };
 use nemesis::NemesisError;
 
+#[expect(clippy::module_name_repetitions, reason = "Builder pattern")]
 pub struct CliBuilder<'a> {
     pub(crate) name: String,
     pub(crate) version: Option<String>,
     pub(crate) about: String,
     pub(crate) flags: Vec<CliFlag>,
-    pub(crate) sub_commands: Vec<std::rc::Rc<dyn CliCommand<'a>>>,
+    pub(crate) sub_commands: Vec<Rc<dyn CliCommand<'a>>>,
     pub(crate) handle_unknown_args: bool,
     basic: bool,
     pub(crate) auto_execution: bool,
@@ -24,6 +27,7 @@ impl<'a> CliBuilder<'a> {
     /// # Arguments
     ///
     /// * `name` - The name of the program. May contain no whitespace and may not be empty
+    #[expect(clippy::expect_used, reason = "Manual checked and constructed")]
     pub fn new<S: Into<String>>(name: S) -> CliBuilder<'a> {
         let help_flag = CliFlag::new("help")
             .with_flag_char('h')
@@ -34,7 +38,10 @@ impl<'a> CliBuilder<'a> {
             .with_short_about("Prints version information")
             .with_long_about("Prints nothing else.")
             .build();
-        let flags = vec![help_flag.unwrap(), version_flag.unwrap()];
+        let flags = vec![
+            help_flag.expect("Manual checked, constructed above"),
+            version_flag.expect("Manual checked, constructed above"),
+        ];
         CliBuilder {
             name: name.into(),
             version: None,
@@ -92,7 +99,7 @@ impl<'a> CliBuilder<'a> {
     /// # Returns
     ///
     /// * `CliBuilder`
-    pub fn add_command(mut self, command: std::rc::Rc<dyn CliCommand<'a> + 'static>) -> Self {
+    pub fn add_command(mut self, command: Rc<dyn CliCommand<'a> + 'static>) -> Self {
         self.sub_commands.push(command);
         self
     }
@@ -147,7 +154,6 @@ impl<'a> CliBuilder<'a> {
     }
     /// Build the command line interface, validate its fields and get & parse the command line arguments passed into the program
     /// This will return an error if the name is invalid, the version is empty, or the about is empty
-    /// Build the command line interface, validate its fields and get & parse the command line arguments passed into the program
     ///
     /// If validation or parsing fails, this will print the error using `eprintln!` and exit with code 1.
     ///
@@ -157,12 +163,13 @@ impl<'a> CliBuilder<'a> {
     /// # Returns
     ///
     /// * `Cli`
+    #[expect(clippy::print_stderr, reason = "Need to print to stderr")]
     pub fn parse(self) -> Cli<'a> {
         match self.try_parse() {
             Ok(cli) => cli,
             Err(err) => {
-                eprintln!("{}", err);
-                std::process::exit(1);
+                eprintln!("{err}");
+                exit(1);
             }
         }
     }
@@ -180,12 +187,13 @@ impl<'a> CliBuilder<'a> {
     ///
     /// * `Cli`
     ///
+    #[expect(clippy::print_stderr, reason = "Need to print to stderr")]
     pub fn parse_custom(self, params: Vec<String>) -> Cli<'a> {
         match self.try_parse_custom(params) {
             Ok(cli) => cli,
             Err(err) => {
-                eprintln!("{}", err);
-                std::process::exit(1);
+                eprintln!("{err}");
+                exit(1);
             }
         }
     }
