@@ -15,7 +15,7 @@ pub trait CliCommand<'c> {
     /// A list of all flags defined for this command
     fn flags(&self) -> &Vec<CliFlag>;
     /// A list of all subcommands defined for this command
-    fn subcommands(&self) -> &Vec<Box<dyn CliCommand<'c>>>;
+    fn subcommands(&self) -> Vec<std::rc::Rc<dyn CliCommand<'c>>>;
     /// The function to execute
     ///
     /// # Parameters
@@ -36,7 +36,7 @@ pub struct CliCmd {
     short_about: String,
     long_about: String,
     flags: Vec<CliFlag>,
-    subcommands: Vec<Box<dyn CliCommand<'static>>>,
+    subcommands: Vec<std::rc::Rc<dyn CliCommand<'static>>>,
 }
 
 impl CliCmd {
@@ -65,8 +65,8 @@ impl CliCommand<'static> for CliCmd {
     fn flags(&self) -> &Vec<CliFlag> {
         &self.flags
     }
-    fn subcommands(&self) -> &Vec<Box<dyn CliCommand<'static>>> {
-        &self.subcommands
+    fn subcommands(&self) -> Vec<std::rc::Rc<dyn CliCommand<'static>>> {
+        self.subcommands.clone()
     }
     fn execute(&self, cli: &Cli<'_>) {}
 }
@@ -77,7 +77,7 @@ pub struct CliCmdBuilder {
     short_about: String,
     long_about: String,
     flags: Vec<CliFlag>,
-    subcommands: Vec<Box<dyn CliCommand<'static>>>,
+    subcommands: Vec<std::rc::Rc<dyn CliCommand<'static>>>,
 }
 
 impl CliCmdBuilder {
@@ -95,7 +95,7 @@ impl CliCmdBuilder {
     }
 
     /// Add a subcommand to the command
-    pub fn add_subcommand(mut self, subcommand: Box<dyn CliCommand<'static>>) -> Self {
+    pub fn add_subcommand(mut self, subcommand: std::rc::Rc<dyn CliCommand<'static>>) -> Self {
         self.subcommands.push(subcommand);
         self
     }
