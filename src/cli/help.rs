@@ -1,5 +1,8 @@
-use std::fmt::{self, Write};
-use std::os::fd::AsRawFd;
+use std::fmt::{self, Write as _};
+use std::io::stdout;
+use std::os::fd::AsRawFd as _;
+
+use athena::system::terminal_size;
 
 use crate::{Cli, CliCommand, CliFlag};
 
@@ -25,7 +28,7 @@ fn make_body(cli: &Cli, out: &mut TermWriter) {
     out.push_str(&cli.about);
     out.push_str(SECTION_BREAK);
 
-    if cli.flags.len() > 0 {
+    if !cli.flags.is_empty() {
         out.push_str("All available flags:");
         out.push_str(SECTION_BREAK);
         for flag in &cli.flags {
@@ -35,8 +38,8 @@ fn make_body(cli: &Cli, out: &mut TermWriter) {
         out.buffer
             .truncate(out.buffer.len().saturating_sub(SECTION_BREAK.len()));
     }
-    if cli.sub_commands.len() > 0 {
-        if cli.flags.len() > 0 {
+    if !cli.sub_commands.is_empty() {
+        if !cli.flags.is_empty() {
             out.push_str(SECTION_BREAK);
             out.push_str(SECTION_BREAK);
         }
@@ -59,7 +62,7 @@ fn make_subcmd(cmd: &dyn CliCommand, out: &mut TermWriter) {
     out.wrap_text(&format!("{}\n{}", cmd.short_about(), cmd.long_about()), 1);
     out.push_str(BREAK);
     let flags = cmd.flags();
-    if flags.len() > 0 {
+    if !flags.is_empty() {
         out.push_str("All available flags for this command:");
         out.push_str(SECTION_BREAK);
         for flag in flags {
@@ -70,8 +73,8 @@ fn make_subcmd(cmd: &dyn CliCommand, out: &mut TermWriter) {
             .truncate(out.buffer.len().saturating_sub(SECTION_BREAK.len()));
     }
     let sub_commands = cmd.subcommands();
-    if sub_commands.len() > 0 {
-        if flags.len() > 0 {
+    if !sub_commands.is_empty() {
+        if !flags.is_empty() {
             out.push_str(SECTION_BREAK);
             out.push_str(SECTION_BREAK);
         }
@@ -87,11 +90,15 @@ fn make_subcmd(cmd: &dyn CliCommand, out: &mut TermWriter) {
     out.push_str(BREAK);
 }
 
+#[expect(
+    clippy::let_underscore_must_use,
+    reason = "Dont want to make this error"
+)]
 fn make_flag(flag: &CliFlag, out: &mut TermWriter) {
     out.push_str(SPACE);
 
     if let Some(short) = &flag.flag_char {
-        let _ = write!(out, "-{}", short);
+        let _ = write!(out, "-{short}");
     } else {
         out.push_str(SPACE); // Spaces for missing short flag
         out.push_str(SPACE);
@@ -140,8 +147,7 @@ struct Indentation {
 impl Indentation {
     /// Create a new indentation instance
     pub fn new() -> Indentation {
-        let (_, max_width) =
-            athena::system::terminal_size(std::io::stdout().as_raw_fd()).unwrap_or((0, 80));
+        let (_, max_width) = terminal_size(stdout().as_raw_fd()).unwrap_or((0, 80));
         let amount = max_width.saturating_div(3).clamp(20, 40) as usize;
         Indentation {
             max_width: max_width as usize,
@@ -163,7 +169,7 @@ pub struct TermWriter {
 }
 
 impl TermWriter {
-    /// Creates a new TermWriter
+    /// Creates a new `TermWriter`
     pub fn new(capacity: usize) -> Self {
         Self {
             buffer: String::with_capacity(capacity),
@@ -180,7 +186,7 @@ impl TermWriter {
             if s.contains('\n') {
                 self.current_col = last_line.chars().count();
             } else {
-                self.current_col += last_line.chars().count();
+                self.current_col = self.current_col.saturating_add(last_line.chars().count());
             }
         }
     }
@@ -192,7 +198,7 @@ impl TermWriter {
         for _ in 0..padding_needed {
             self.buffer.push(' ');
         }
-        self.current_col += padding_needed;
+        self.current_col = self.current_col.saturating_add(padding_needed);
     }
 
     /// Zero-dependency text wrapping
@@ -207,7 +213,9 @@ impl TermWriter {
                 let word_len = word.chars().count();
 
                 // If adding this word exceeds the terminal width, wrap to next line
-                if self.current_col + word_len + 1 > self.indent.max_width {
+                if self.current_col.saturating_add(word_len).saturating_add(1)
+                    > self.indent.max_width
+                {
                     self.push_str("\n");
                     self.pad_to_column(target_level);
                     line_start = true; // Needed for next loop
