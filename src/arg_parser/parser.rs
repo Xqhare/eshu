@@ -1,5 +1,5 @@
+use nemesis::{NemesisError, NemesisResultExt as _};
 use std::collections::BTreeMap;
-use nemesis::{NemesisError, NemesisResultExt};
 
 use crate::{
     Cli, CliFlag, EshuErrorKind, StoreSyntax, StoreType,
@@ -8,6 +8,9 @@ use crate::{
 };
 
 /// Inserts a flag into the entered flags map
+#[expect(clippy::expect_used, reason = "Dynamic check")]
+#[expect(clippy::unreachable, reason = "Unreachable is fine here")]
+#[expect(clippy::map_entry, reason = "Fine here, for better logic flow")]
 pub fn insert_long_flag(
     entered_flags: &mut BTreeMap<String, (usize, Store)>,
     long_flag: String,
@@ -26,11 +29,11 @@ pub fn insert_long_flag(
                     match store {
                         Store::Exists => Vec::new(),
                         Store::Value(val) => val,
-                        _ => unreachable!("Must be value"),
+                        Store::KeyValue(_) => unreachable!("Must be value"),
                     }
                 };
                 for val in to_store {
-                    inner_store.push(val.to_string());
+                    inner_store.push(val.clone());
                 }
             }
             Store::KeyValue(_) => {
@@ -39,11 +42,11 @@ pub fn insert_long_flag(
                     match store {
                         Store::Exists => BTreeMap::new(),
                         Store::KeyValue(val) => val,
-                        _ => unreachable!("Must be key value"),
+                        Store::Value(_) => unreachable!("Must be key value"),
                     }
                 };
                 for (key, val) in to_store {
-                    inner_store.insert(key.to_string(), val.to_string());
+                    inner_store.insert(key.clone(), val.clone());
                 }
             }
         }
@@ -52,11 +55,14 @@ pub fn insert_long_flag(
     }
 }
 
-/// Returns (long_flag, (index, store))
+/// Returns (`long_flag`, (index, store))
 /// Handles both flags with leading `--` and without
 ///
 /// # Note
 /// Because of the state machine, this function also has to handle `-C=value`
+#[expect(clippy::shadow_same, reason = "Shadowing is fine here")]
+#[expect(clippy::expect_used, reason = "Dynamic check")]
+#[expect(clippy::type_complexity, reason = "Parsing is complex")]
 pub fn parse_long_flag(
     arg: &str,
     cli: &CliBuilder,
@@ -80,7 +86,13 @@ pub fn parse_long_flag(
         };
         if parsed_long_flag == flag.long_flag {
             if flag.storing {
-                return Ok(Some(handle_store(arg, index, flag, next_arg, detached_list_args)?));
+                return Ok(Some(handle_store(
+                    arg,
+                    index,
+                    flag,
+                    next_arg,
+                    detached_list_args,
+                )?));
             } else {
                 return Ok(Some((flag.long_flag.clone(), (index, Store::Exists))));
             }
@@ -95,18 +107,23 @@ pub fn parse_long_flag(
             return Ok(Some(handle_store(
                 arg,
                 partials[0].1,
-                &partial,
+                partial,
                 next_arg,
                 detached_list_args,
             )?));
         } else {
-            return Ok(Some((partial.long_flag.clone(), (partials[0].1, Store::Exists))));
+            return Ok(Some((
+                partial.long_flag.clone(),
+                (partials[0].1, Store::Exists),
+            )));
         }
     }
 
     Ok(None)
 }
 
+#[expect(clippy::too_many_lines, reason = "Parsing is complex")]
+#[expect(clippy::shadow_unrelated, reason = "Shadowing is fine here")]
 fn handle_store(
     arg: &str,
     index: usize,
@@ -117,7 +134,18 @@ fn handle_store(
     let mut store = Store::Exists;
     let mut value = None;
 
-    match &cli_flag.store_syntax.expect("Store syntax not set") {
+    let flag_store_syntax = if let Some(syntax) = cli_flag.store_syntax {
+        syntax
+    } else {
+        return Err(NemesisError::new(
+            "eshu::parser",
+            EshuErrorKind::MissingArgument {
+                flag: format!("--{}", cli_flag.long_flag),
+                expected_syntax: "--[FLAG]".to_string(),
+            },
+        ));
+    };
+    match &flag_store_syntax {
         StoreSyntax::Attached => {
             if let Some((_, val)) = arg.split_once('=') {
                 value = Some(val);
@@ -133,7 +161,18 @@ fn handle_store(
     }
 
     if cli_flag.required_store && value.is_none() {
-        let req_syntax = match &cli_flag.store_syntax.expect("Store syntax not set") {
+        let flag_store_syntax = if let Some(syntax) = cli_flag.store_syntax {
+            syntax
+        } else {
+            return Err(NemesisError::new(
+                "eshu::parser",
+                EshuErrorKind::MissingArgument {
+                    flag: format!("--{}", cli_flag.long_flag),
+                    expected_syntax: "--[FLAG]".to_string(),
+                },
+            ));
+        };
+        let req_syntax = match &flag_store_syntax {
             StoreSyntax::Attached => format!("--{}=VALUE", cli_flag.long_flag),
             StoreSyntax::Detached => format!("--{} VALUE", cli_flag.long_flag),
         };
@@ -147,26 +186,68 @@ fn handle_store(
     }
 
     if let Some(detached_list_args) = detached_list_args {
-        match &cli_flag.store_type.expect("Store type not set") {
+        let flag_store_type = if let Some(store_type) = cli_flag.store_type {
+            store_type
+        } else {
+            return Err(NemesisError::new(
+                "eshu::parser",
+                EshuErrorKind::MissingArgument {
+                    flag: format!("-{} (--{})", arg, cli_flag.long_flag),
+                    expected_syntax: "--store-type".to_string(),
+                },
+            ));
+        };
+        match flag_store_type {
             StoreType::Value => {
                 store = Store::Value(detached_list_args.to_vec());
             }
             StoreType::KeyValue => {
                 let mut map = BTreeMap::new();
                 for arg in detached_list_args {
-                    let (key, val) = arg.split_once('=').expect("Must be key=value");
+                    let (key, val) = if let Some((key, value)) = arg.split_once('=') {
+                        (key, value)
+                    } else {
+                        return Err(NemesisError::new(
+                            "eshu::parser",
+                            EshuErrorKind::MissingArgument {
+                                flag: format!("-{} (--{})", arg, cli_flag.long_flag),
+                                expected_syntax: "-key=value".to_string(),
+                            },
+                        ));
+                    };
                     map.insert(key.to_string(), val.to_string());
                 }
                 store = Store::KeyValue(map);
             }
         }
-    } else if value.is_some() {
-        match &cli_flag.store_type.expect("Store type not set") {
+    } else if let Some(value) = value {
+        let flag_store_type = if let Some(store_type) = cli_flag.store_type {
+            store_type
+        } else {
+            return Err(NemesisError::new(
+                "eshu::parser",
+                EshuErrorKind::MissingArgument {
+                    flag: format!("-{} (--{})", arg, cli_flag.long_flag),
+                    expected_syntax: "--store-type".to_string(),
+                },
+            ));
+        };
+        match flag_store_type {
             StoreType::Value => {
-                store = Store::Value(vec![value.unwrap().to_string()]);
+                store = Store::Value(vec![value.to_string()]);
             }
             StoreType::KeyValue => {
-                let (key, val) = value.unwrap().split_once('=').expect("Must be key=value");
+                let (key, val) = if let Some((key, value)) = value.split_once('=') {
+                    (key, value)
+                } else {
+                    return Err(NemesisError::new(
+                        "eshu::parser",
+                        EshuErrorKind::MissingArgument {
+                            flag: format!("-{} (--{})", arg, cli_flag.long_flag),
+                            expected_syntax: "-key=value".to_string(),
+                        },
+                    ));
+                };
                 store = Store::KeyValue(BTreeMap::from([(key.to_string(), val.to_string())]));
             }
         }
@@ -187,17 +268,18 @@ fn handle_store(
 /// # Returns
 ///
 /// * `bool` - Whether or not the subcommand was found. True if found
+#[expect(clippy::clone_on_ref_ptr, reason = "Cloning is fine here")]
 pub fn parse_subcommand<'a>(
     arg: &str,
     cli: &CliBuilder<'a>,
-    args: &Vec<String>,
+    args: &[String],
 ) -> Result<Option<(String, Cli<'a>)>, NemesisError> {
     if arg.is_empty() {
         return Ok(None);
     }
     let mut partials = Vec::new();
     let mut execute = None;
-    for subcommand in cli.sub_commands.iter() {
+    for subcommand in &cli.sub_commands {
         if subcommand.name().starts_with(arg) {
             if subcommand.name().len() > arg.len() {
                 partials.push(subcommand);
@@ -213,28 +295,26 @@ pub fn parse_subcommand<'a>(
     if let Some(execute) = execute {
         let mut inner_cli = Cli::new(execute.name())
             .with_about(&execute.short_about())
-            .with_version(
-                &cli.version
-                    .clone()
-                    .unwrap_or("0.0.0".to_string())
-                    .to_string(),
-            );
+            .with_version(&cli.version.clone().unwrap_or("0.0.0".to_string()).clone());
         for flag in execute.flags() {
-            inner_cli = inner_cli.add_flag(flag.clone())
+            inner_cli = inner_cli.add_flag(flag.clone());
         }
         for subcommand in execute.subcommands() {
             inner_cli = inner_cli.add_command(subcommand.clone());
         }
         let mut inner_args = Vec::with_capacity(args.len().saturating_add(1));
-        inner_args.push("".to_string());
+        inner_args.push(String::new());
         inner_args.extend_from_slice(args);
 
         let inner_cli = inner_cli
             .try_parse_custom(inner_args)
             .add_source("eshu::parser")
-            .add_ctx(format!("Parsing arguments for subcommand '{}'", execute.name()))?;
+            .add_ctx(format!(
+                "Parsing arguments for subcommand '{}'",
+                execute.name()
+            ))?;
 
-        Ok(Some((execute.name().to_string(), inner_cli)))
+        Ok(Some((execute.name().clone(), inner_cli)))
     } else {
         Ok(None)
     }
@@ -247,6 +327,9 @@ pub fn parse_subcommand<'a>(
 /// # Note
 /// Because of the state machine, this function does not handle `-C=value`; It handles detached
 /// values however.
+#[expect(clippy::shadow_unrelated, reason = "Shadowing is fine here")]
+#[expect(clippy::too_many_lines, reason = "Parsing is complex")]
+#[expect(clippy::type_complexity, reason = "Parsing is complex")]
 pub fn parse_short_flag(
     arg: &str,
     cli: &CliBuilder,
@@ -254,37 +337,67 @@ pub fn parse_short_flag(
     detached_list_args: Option<&[String]>,
 ) -> Result<Option<(String, (usize, Store))>, NemesisError> {
     for (index, flag) in cli.flags.iter().enumerate() {
-        if flag.flag_char == Some(arg.chars().last().unwrap()) {
+        let arg_char = if let Some(c) = arg.chars().last() {
+            c
+        } else {
+            // Should never happen anyway
+            return Err(NemesisError::new(
+                "eshu::parser",
+                EshuErrorKind::EmptyString("Argument must not be empty".to_string()),
+            ));
+        };
+        if flag.flag_char == Some(arg_char) {
             if flag.storing {
                 let mut value = None;
-                if flag.store_syntax == Some(StoreSyntax::Detached) {
-                    if let Some(next_argument) = next_arg {
-                        if is_positional(next_argument) {
-                            value = Some(next_argument.to_string());
-                        }
-                    }
+                if flag.store_syntax == Some(StoreSyntax::Detached)
+                    && let Some(next_argument) = next_arg
+                    && is_positional(next_argument)
+                {
+                    value = Some(next_argument.to_string());
                 }
 
                 if flag.required_store && value.is_none() {
-                    let req_syntax = match &flag.store_syntax.expect("Store syntax not set") {
+                    let flag_store_syntax = if let Some(syntax) = flag.store_syntax {
+                        syntax
+                    } else {
+                        return Err(NemesisError::new(
+                            "eshu::parser",
+                            EshuErrorKind::MissingArgument {
+                                flag: format!("-{} (--{})", arg_char, flag.long_flag),
+                                expected_syntax: "VALUE".to_string(),
+                            },
+                        ));
+                    };
+                    let req_syntax = match &flag_store_syntax {
                         StoreSyntax::Attached => {
-                            format!("-{}={}", arg.chars().last().unwrap(), "VALUE")
+                            format!("-{}={}", arg_char, "VALUE")
                         }
                         StoreSyntax::Detached => {
-                            format!("-{} {}", arg.chars().last().unwrap(), "VALUE")
+                            format!("-{} {}", arg_char, "VALUE")
                         }
                     };
                     return Err(NemesisError::new(
                         "eshu::parser",
                         EshuErrorKind::MissingArgument {
-                            flag: format!("-{} (--{})", arg.chars().last().unwrap(), flag.long_flag),
+                            flag: format!("-{} (--{})", arg_char, flag.long_flag),
                             expected_syntax: req_syntax,
                         },
                     ));
                 }
 
                 if let Some(val) = value {
-                    match flag.store_type.expect("Store type not set") {
+                    let flag_store_type = if let Some(store_type) = flag.store_type {
+                        store_type
+                    } else {
+                        return Err(NemesisError::new(
+                            "eshu::parser",
+                            EshuErrorKind::MissingArgument {
+                                flag: format!("-{} (--{})", arg_char, flag.long_flag),
+                                expected_syntax: "VALUE".to_string(),
+                            },
+                        ));
+                    };
+                    match flag_store_type {
                         StoreType::Value => {
                             if let Some(detached_list_args) = detached_list_args {
                                 // Ignore value here, end-of-flag marker was found
@@ -303,8 +416,21 @@ pub fn parse_short_flag(
                                 // Ignore value here, end-of-flag marker was found
                                 let mut map = BTreeMap::new();
                                 for arg in detached_list_args {
-                                    let (key, val) =
-                                        arg.split_once('=').expect("Must be key=value");
+                                    let (key, val) = if let Some((key, value)) = arg.split_once('=')
+                                    {
+                                        (key, value)
+                                    } else {
+                                        return Err(NemesisError::new(
+                                            "eshu::parser",
+                                            EshuErrorKind::MissingArgument {
+                                                flag: format!(
+                                                    "-{} (--{})",
+                                                    arg_char, flag.long_flag
+                                                ),
+                                                expected_syntax: "-key=value".to_string(),
+                                            },
+                                        ));
+                                    };
                                     map.insert(key.to_string(), val.to_string());
                                 }
                                 return Ok(Some((
@@ -312,7 +438,17 @@ pub fn parse_short_flag(
                                     (index, Store::KeyValue(map)),
                                 )));
                             }
-                            let (key, v) = val.split_once('=').expect("Must be key=value");
+                            let (key, v) = if let Some((key, value)) = val.split_once('=') {
+                                (key, value)
+                            } else {
+                                return Err(NemesisError::new(
+                                    "eshu::parser",
+                                    EshuErrorKind::MissingArgument {
+                                        flag: format!("-{} (--{})", arg_char, flag.long_flag),
+                                        expected_syntax: "-key=value".to_string(),
+                                    },
+                                ));
+                            };
                             return Ok(Some((
                                 flag.long_flag.clone(),
                                 (
