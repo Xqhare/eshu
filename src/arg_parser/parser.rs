@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    Cli, CliCommand, CliFlag, StoreSyntax, StoreType,
+    Cli, CliFlag, StoreSyntax, StoreType,
     cli::builder::CliBuilder,
     utils::{Store, is_positional, write_err_and_exit},
 };
@@ -219,9 +219,7 @@ pub fn parse_subcommand<'a>(
             inner_cli = inner_cli.add_flag(flag.clone())
         }
         for subcommand in execute.subcommands() {
-            let cmd_ref = subcommand.as_ref();
-            let cmd_ref_long: &'a dyn CliCommand<'a> = unsafe { &*(cmd_ref as *const dyn CliCommand<'a>) };
-            inner_cli = inner_cli.add_command_ref(cmd_ref_long);
+            inner_cli = inner_cli.add_command(subcommand.clone());
         }
         let mut new_args = Vec::with_capacity(args.len().saturating_add(1));
         new_args.push("".to_string()); // Is discarded anyway
