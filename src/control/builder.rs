@@ -262,13 +262,13 @@ impl CliFlagBuilder {
                 EshuErrorKind::Storage("Flags that require arguments must accept them".to_string()),
             ));
         }
-        if let Some(char) = self.flag_char {
-            if !char.is_ascii_alphabetic() {
-                return Err(NemesisError::new(
-                    "eshu::builder",
-                    EshuErrorKind::InvalidName("Flag must be a letter".to_string()),
-                ));
-            }
+        if let Some(char) = self.flag_char
+            && !char.is_ascii_alphabetic()
+        {
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::InvalidName("Flag must be a letter".to_string()),
+            ));
         }
         if self.long_flag.is_empty() {
             return Err(NemesisError::new(
