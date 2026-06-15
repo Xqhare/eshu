@@ -124,6 +124,12 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                         sub_cmd_cli.insert(name, sub_cli);
                         break;
                     }
+                    if !cli_builder.sub_commands.is_empty() && !arg.is_empty() {
+                        return Err(NemesisError::new(
+                            "eshu::parser",
+                            EshuErrorKind::UnknownArgument(arg.clone()),
+                        ));
+                    }
                     stray_positional_args.push(arg.clone());
                 }
             }

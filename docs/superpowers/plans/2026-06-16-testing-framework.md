@@ -894,7 +894,7 @@
 **Files:**
 - Modify: `tests/subcmd_tests.rs`
 
-- [ ] **Step 1: Write expanded subcommand tests**
+- [x] **Step 1: Write expanded subcommand tests**
   Add the new tests to the end of `tests/subcmd_tests.rs`:
   ```rust
   #[test]
@@ -967,11 +967,11 @@
   }
   ```
 
-- [ ] **Step 2: Run subcommand tests**
+- [x] **Step 2: Run subcommand tests**
   Run: `cargo test --test subcmd_tests`
   Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run:
   ```bash
   git add tests/subcmd_tests.rs
