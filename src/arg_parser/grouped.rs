@@ -8,6 +8,9 @@ use crate::{
 use nemesis::NemesisError;
 
 /// Handles grouped flags
+#[expect(clippy::shadow_unrelated, reason = "Shadowing is fine here")]
+#[expect(clippy::too_many_lines, reason = "Parsing is complex")]
+#[expect(clippy::type_complexity, reason = "Parsing is complex")]
 pub fn parse_grouped_flags(
     arg: &str,
     cli_builder: &CliBuilder,
@@ -22,14 +25,14 @@ pub fn parse_grouped_flags(
 
     while let Some(c) = arg_iter.next() {
         if index == 0 && c == '-' {
-            index += 1;
+            index = index.saturating_add(1);
             continue;
         }
-        index += 1;
+        index = index.saturating_add(1);
 
         if c.is_ascii_alphabetic() {
             let mut matched_flag = None;
-            for flag in cli_builder.flags.iter() {
+            for flag in &cli_builder.flags {
                 if flag.flag_char == Some(c) {
                     matched_flag = Some(flag);
                     break;
@@ -57,8 +60,7 @@ pub fn parse_grouped_flags(
                 }
                 if let Some(stored_value) = stored_value {
                     if stored_value.len() <= 1 {
-                        let stored_value =
-                            stored_value.get(0).unwrap_or(&"".to_string()).to_string();
+                        let stored_value = stored_value.first().unwrap_or(&String::new()).clone();
                         match flag.store_type {
                             Some(StoreType::Value) => {
                                 out.push((
@@ -69,7 +71,17 @@ pub fn parse_grouped_flags(
                             }
                             Some(StoreType::KeyValue) => {
                                 let (key, val) =
-                                    stored_value.split_once('=').expect("Must be key=value");
+                                    if let Some((key, val)) = stored_value.split_once('=') {
+                                        (key, val)
+                                    } else {
+                                        return Err(NemesisError::new(
+                                            "eshu::parser",
+                                            EshuErrorKind::MissingArgument {
+                                                flag: format!("-{} (--{})", c, flag.long_flag),
+                                                expected_syntax: "-key=value".to_string(),
+                                            },
+                                        ));
+                                    };
                                 out.push((
                                     flag.long_flag.clone(),
                                     (
@@ -103,8 +115,18 @@ pub fn parse_grouped_flags(
                             Some(StoreType::KeyValue) => {
                                 let mut map = BTreeMap::new();
                                 for arg in stored_value {
-                                    let (key, val) =
-                                        arg.split_once('=').expect("Must be key=value");
+                                    let (key, val) = if let Some((key, value)) = arg.split_once('=')
+                                    {
+                                        (key, value)
+                                    } else {
+                                        return Err(NemesisError::new(
+                                            "eshu::parser",
+                                            EshuErrorKind::MissingArgument {
+                                                flag: format!("-{} (--{})", arg, flag.long_flag),
+                                                expected_syntax: "-key=value".to_string(),
+                                            },
+                                        ));
+                                    };
                                     map.insert(key.to_string(), val.to_string());
                                 }
                                 out.push((flag.long_flag.clone(), (index, Store::KeyValue(map))));
@@ -133,13 +155,13 @@ pub fn parse_grouped_flags(
             } else {
                 return Err(NemesisError::new(
                     "eshu::parser",
-                    EshuErrorKind::Generic(format!("Flag character '{}' not found", c)),
+                    EshuErrorKind::Generic(format!("Flag character '{c}' not found")),
                 ));
             }
         } else {
             return Err(NemesisError::new(
                 "eshu::parser",
-                EshuErrorKind::Generic(format!("Invalid flag character: {}", c)),
+                EshuErrorKind::Generic(format!("Invalid flag character: {c}")),
             ));
         }
     }
@@ -147,10 +169,12 @@ pub fn parse_grouped_flags(
     Ok(out)
 }
 
+#[expect(clippy::shadow_unrelated, reason = "Shadowing is fine here")]
+#[expect(clippy::too_many_arguments, reason = "Parsing is complex")]
 fn get_flag_store(
     flag: &CliFlag,
     arg_iter: &mut Peekable<Chars>,
-    args: &Vec<char>,
+    args: &[char],
     index: usize,
     arg: &str,
     next_arg: Option<&str>,
@@ -161,12 +185,12 @@ fn get_flag_store(
     if flag.storing {
         match flag.store_syntax {
             Some(StoreSyntax::Attached) => {
-                if let Some(next_arg) = arg_iter.peek() {
-                    if next_arg == &'=' {
-                        stored_value = Some(vec![
-                            args[index.saturating_add(1)..].iter().collect::<String>(),
-                        ]);
-                    }
+                if let Some(next_arg) = arg_iter.peek()
+                    && next_arg == &'='
+                {
+                    stored_value = Some(vec![
+                        args[index.saturating_add(1)..].iter().collect::<String>(),
+                    ]);
                 }
                 if stored_value.is_none() && flag.required_store {
                     if let Some(detached_list_args) = detached_list_args {
@@ -180,7 +204,7 @@ fn get_flag_store(
                                 expected_syntax: format!("-{}={}", c, "VALUE"),
                             },
                         ));
-                    };
+                    }
                     // POSIX, as I understand it, requires using all following chars of a
                     // grouped flag as the value if the flag accepts values. Horrible way of
                     // putting it
@@ -191,24 +215,23 @@ fn get_flag_store(
             }
             Some(StoreSyntax::Detached) => {
                 // TODO: add to the doc that only the *last* flag (in the entire group) can have a detached value
-                if index == arg.len() {
-                    if let Some(next_arg) = next_arg {
-                        if is_positional(next_arg) {
-                            stored_value = Some(vec![next_arg.to_string()]);
-                        }
+                if index == arg.len()
+                    && let Some(next_arg) = next_arg
+                    && is_positional(next_arg)
+                {
+                    stored_value = Some(vec![next_arg.to_string()]);
+                }
+                if flag.required_store && stored_value.is_none() {
+                    if let Some(detached_list_args) = detached_list_args {
+                        return Ok(Some(detached_list_args.to_vec()));
                     }
-                    if flag.required_store && stored_value.is_none() {
-                        if let Some(detached_list_args) = detached_list_args {
-                            return Ok(Some(detached_list_args.to_vec()));
-                        }
-                        return Err(NemesisError::new(
-                            "eshu::parser",
-                            EshuErrorKind::MissingArgument {
-                                flag: format!("-{} (--{})", c, flag.long_flag),
-                                expected_syntax: format!("-{} {}", c, "VALUE"),
-                            },
-                        ));
-                    }
+                    return Err(NemesisError::new(
+                        "eshu::parser",
+                        EshuErrorKind::MissingArgument {
+                            flag: format!("-{} (--{})", c, flag.long_flag),
+                            expected_syntax: format!("-{} {}", c, "VALUE"),
+                        },
+                    ));
                 }
             }
             None => {}
