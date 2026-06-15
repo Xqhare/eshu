@@ -151,7 +151,7 @@
 **Files:**
 - Modify: `tests/parser_tests/end_of_flag.rs`
 
-- [ ] **Step 1: Move end of flag tests into `tests/parser_tests/end_of_flag.rs`**
+- [x] **Step 1: Move end of flag tests into `tests/parser_tests/end_of_flag.rs`**
   Add the migrated tests:
   ```rust
   use eshu::{Cli, CliFlag};
@@ -246,11 +246,11 @@
   }
   ```
 
-- [ ] **Step 2: Run end-of-flag tests to verify they pass**
+- [x] **Step 2: Run end-of-flag tests to verify they pass**
   Run: `cargo test --test parser_tests end_of_flag`
   Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run:
   ```bash
   git add tests/parser_tests/end_of_flag.rs
