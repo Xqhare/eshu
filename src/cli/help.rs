@@ -43,7 +43,7 @@ fn make_body(cli: &Cli, out: &mut TermWriter) {
         out.push_str("All available commands:");
         out.push_str(SECTION_BREAK);
         for command in &cli.sub_commands {
-            make_subcmd(command, out);
+            make_subcmd(&**command, out);
             out.push_str(SECTION_BREAK);
         }
         out.buffer
@@ -52,7 +52,7 @@ fn make_body(cli: &Cli, out: &mut TermWriter) {
     out.push_str(SECTION_BREAK);
 }
 
-fn make_subcmd<'a>(cmd: &'a Box<dyn CliCommand>, out: &mut TermWriter) {
+fn make_subcmd(cmd: &dyn CliCommand, out: &mut TermWriter) {
     out.push_str(SPACE);
     out.push_str(&cmd.name());
     out.pad_to_column(1);
@@ -78,7 +78,7 @@ fn make_subcmd<'a>(cmd: &'a Box<dyn CliCommand>, out: &mut TermWriter) {
         out.push_str("All available sub-commands for this command:");
         out.push_str(SECTION_BREAK);
         for command in sub_commands {
-            make_subcmd(command, out);
+            make_subcmd(command.as_ref(), out);
             out.push_str(SECTION_BREAK);
         }
         out.buffer

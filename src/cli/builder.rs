@@ -1,6 +1,7 @@
 use crate::{
     Cli, CliCommand, CliFlag, EshuError,
     arg_parser::parse_args,
+    cli::SubCommand,
     error::EshuResult,
     utils::{contains_whitespace, get_params_make_args},
 };
@@ -10,7 +11,7 @@ pub struct CliBuilder<'a> {
     pub(crate) version: Option<String>,
     pub(crate) about: String,
     pub(crate) flags: Vec<CliFlag>,
-    pub(crate) sub_commands: Vec<Box<dyn CliCommand<'a>>>,
+    pub(crate) sub_commands: Vec<SubCommand<'a>>,
     pub(crate) handle_unknown_args: bool,
     basic: bool,
     pub(crate) auto_execution: bool,
@@ -92,7 +93,11 @@ impl<'a> CliBuilder<'a> {
     ///
     /// * `CliBuilder`
     pub fn add_command(mut self, command: Box<dyn CliCommand<'a> + 'static>) -> Self {
-        self.sub_commands.push(command);
+        self.sub_commands.push(SubCommand::Owned(command));
+        self
+    }
+    pub(crate) fn add_command_ref(mut self, command: &'a dyn CliCommand<'a>) -> Self {
+        self.sub_commands.push(SubCommand::Borrowed(command));
         self
     }
     /// Set the version of the program
