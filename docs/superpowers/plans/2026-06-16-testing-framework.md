@@ -264,7 +264,7 @@
 **Files:**
 - Modify: `tests/parser_tests/store.rs`
 
-- [ ] **Step 1: Move store tests into `tests/parser_tests/store.rs`**
+- [x] **Step 1: Move store tests into `tests/parser_tests/store.rs`**
   Add the migrated tests:
   ```rust
   use eshu::{Cli, CliFlag, StoreSyntax, StoreType};
@@ -402,11 +402,11 @@
   }
   ```
 
-- [ ] **Step 2: Run store tests to verify they pass**
+- [x] **Step 2: Run store tests to verify they pass**
   Run: `cargo test --test parser_tests store`
   Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run:
   ```bash
   git add tests/parser_tests/store.rs
