@@ -1,8 +1,9 @@
 use crate::{
-    CliFlag, EshuError, StoreSyntax, StoreType,
-    error::EshuResult,
+    CliFlag, StoreSyntax, StoreType,
+    error::{EshuErrorKind, EshuResult},
     utils::{contains_whitespace, starts_with_dash},
 };
+use nemesis::NemesisError;
 
 // This doc really is just to make clippy shut up. The real doc is on `CliFlag`
 /// Builder for a `CliFlag`
@@ -256,18 +257,23 @@ impl CliFlagBuilder {
     /// ```
     pub fn build(mut self) -> EshuResult<CliFlag> {
         if self.required_store && !self.storing {
-            return Err(EshuError::Storage(
-                "Flags that require arguments must accept them".to_string(),
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::Storage("Flags that require arguments must accept them".to_string()),
             ));
         }
         if let Some(char) = self.flag_char {
             if !char.is_ascii_alphabetic() {
-                return Err(EshuError::InvalidName("Flag must be a letter".to_string()));
+                return Err(NemesisError::new(
+                    "eshu::builder",
+                    EshuErrorKind::InvalidName("Flag must be a letter".to_string()),
+                ));
             }
         }
         if self.long_flag.is_empty() {
-            return Err(EshuError::EmptyString(
-                "Flag name must not be empty".to_string(),
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::EmptyString("Flag name must not be empty".to_string()),
             ));
         }
         if starts_with_dash(&self.long_flag) {
@@ -275,26 +281,35 @@ impl CliFlagBuilder {
             if let Some(removed_dashes) = self.long_flag.strip_prefix("--") {
                 self.long_flag = removed_dashes.to_string();
             } else {
-                return Err(EshuError::InvalidName(format!(
-                    "Flag name must not start with a dash. Got: {}",
-                    self.long_flag
-                )));
+                return Err(NemesisError::new(
+                    "eshu::builder",
+                    EshuErrorKind::InvalidName(format!(
+                        "Flag name must not start with a dash. Got: {}",
+                        self.long_flag
+                    )),
+                ));
             }
         }
         if contains_whitespace(&self.long_flag) {
-            return Err(EshuError::InvalidName(
-                "Flag name must not contain whitespace".to_string(),
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::InvalidName("Flag name must not contain whitespace".to_string()),
             ));
         }
         if self.short_about.is_empty() || self.long_about.is_empty() {
-            return Err(EshuError::EmptyString(
-                "Short and long about must not be empty".to_string(),
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::EmptyString("Short and long about must not be empty".to_string()),
             ));
         }
         if self.storing && (self.store_syntax.is_none() || self.store_type.is_none()) {
-            return Err(EshuError::Storage(
-                    "Flags that accept arguments must have a store type, store kind and store syntax set".to_string(),
-                ));
+            return Err(NemesisError::new(
+                "eshu::builder",
+                EshuErrorKind::Storage(
+                    "Flags that accept arguments must have a store type, store kind and store syntax set"
+                        .to_string(),
+                ),
+            ));
         }
         Ok(CliFlag {
             flag_char: self.flag_char,
