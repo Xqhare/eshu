@@ -22,7 +22,7 @@
 - Create: `tests/parser_tests/store.rs`
 - Create: `tests/parser_tests/xff.rs`
 
-- [ ] **Step 1: Replace entry point `tests/parser_tests.rs`**
+- [x] **Step 1: Replace entry point `tests/parser_tests.rs`**
   Modify `tests/parser_tests.rs` to contain only the submodule declarations.
   ```rust
   mod basic;
@@ -34,14 +34,14 @@
   mod xff;
   ```
 
-- [ ] **Step 2: Create empty module files**
+- [x] **Step 2: Create empty module files**
   Create empty files for all seven submodules under the directory `tests/parser_tests/`.
 
-- [ ] **Step 3: Verify build and test status**
+- [x] **Step 3: Verify build and test status**
   Run: `cargo test --test parser_tests`
   Expected: Passes with 0 tests run (as all modules are currently empty).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   Run:
   ```bash
   git add tests/parser_tests.rs tests/parser_tests/
