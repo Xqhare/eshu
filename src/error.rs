@@ -1,11 +1,12 @@
-use std::fmt;
 use nemesis::NemesisError;
+use std::fmt;
 
-/// Crate-level Result type using NemesisError
+/// Crate-level Result type using `NemesisError`
 pub type EshuResult<T> = Result<T, NemesisError>;
 
 /// The structured leaf error type for eshu parser/builder operations.
 #[derive(Debug)]
+#[expect(clippy::absolute_paths, reason = "Easier to read and reason about")]
 pub enum EshuErrorKind {
     /// Generic or internal development error
     Generic(String),
@@ -31,30 +32,42 @@ pub enum EshuErrorKind {
 }
 
 impl fmt::Display for EshuErrorKind {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Generic(msg) | Self::Storage(msg) | Self::EmptyString(msg) | Self::InvalidName(msg) => {
-                write!(f, "{}", msg)
+            Self::Generic(msg)
+            | Self::Storage(msg)
+            | Self::EmptyString(msg)
+            | Self::InvalidName(msg) => {
+                write!(f, "{msg}")
             }
             Self::NoFlagsOrCommands => {
                 write!(f, "No flags or commands set, add at least one.")
             }
             Self::UnknownArgument(args) => {
-                write!(f, "Usage error: Unknown argument(s): {}", args)
+                write!(f, "Usage error: Unknown argument(s): {args}")
             }
-            Self::MissingArgument { flag, expected_syntax } => {
+            Self::MissingArgument {
+                flag,
+                expected_syntax,
+            } => {
                 write!(
                     f,
-                    "Usage error: Flag '{}' requires an argument. Please provide one via the following syntax: '{}'",
-                    flag, expected_syntax
+                    "Usage error: Flag '{flag}' requires an argument. Please provide one via the following syntax: '{expected_syntax}'"
                 )
             }
-            Self::Io(err) => write!(f, "{}", err),
+            Self::Io(err) => write!(f, "{err}"),
         }
     }
 }
 
+#[expect(clippy::absolute_paths, reason = "Easier to read and reason about")]
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "All future additions should return None"
+)]
 impl std::error::Error for EshuErrorKind {
+    #[inline]
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Io(err) => Some(err),
@@ -63,7 +76,9 @@ impl std::error::Error for EshuErrorKind {
     }
 }
 
+#[expect(clippy::absolute_paths, reason = "Easier to read and reason about")]
 impl From<std::io::Error> for EshuErrorKind {
+    #[inline]
     fn from(err: std::io::Error) -> Self {
         Self::Io(err)
     }
