@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     Cli, CliFlag,
     error::{EshuErrorKind, EshuResult},
@@ -19,7 +21,7 @@ pub trait CliCommand<'c> {
     /// A list of all flags defined for this command
     fn flags(&self) -> &Vec<CliFlag>;
     /// A list of all subcommands defined for this command
-    fn subcommands(&self) -> Vec<std::rc::Rc<dyn CliCommand<'c>>>;
+    fn subcommands(&self) -> Vec<Rc<dyn CliCommand<'c>>>;
     /// The function to execute
     ///
     /// # Parameters
@@ -40,16 +42,35 @@ pub struct CliCmd {
     short_about: String,
     long_about: String,
     flags: Vec<CliFlag>,
-    subcommands: Vec<std::rc::Rc<dyn CliCommand<'static>>>,
+    subcommands: Vec<Rc<dyn CliCommand<'static>>>,
 }
 
 impl CliCmd {
     /// Create a new command
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the command. May contain no whitespace and must be unique
+    ///
+    /// # Returns
+    ///
+    /// * `CliCmdBuilder` - The builder for the command
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use eshu::CliCmd;
+    ///
+    /// let cmd = CliCmd::new("cmd-name");
+    /// ```
+    #[inline]
+    #[must_use]
+    #[expect(clippy::new_ret_no_self, reason = "Builder pattern")]
     pub fn new(name: &str) -> CliCmdBuilder {
         CliCmdBuilder {
             name: name.to_string(),
-            short_about: "".to_string(),
-            long_about: "".to_string(),
+            short_about: String::new(),
+            long_about: String::new(),
             flags: Vec::new(),
             subcommands: Vec::new(),
         }
@@ -57,21 +78,27 @@ impl CliCmd {
 }
 
 impl CliCommand<'static> for CliCmd {
+    #[inline]
     fn name(&self) -> String {
         self.name.clone()
     }
+    #[inline]
     fn short_about(&self) -> String {
         self.short_about.clone()
     }
+    #[inline]
     fn long_about(&self) -> String {
         self.long_about.clone()
     }
+    #[inline]
     fn flags(&self) -> &Vec<CliFlag> {
         &self.flags
     }
-    fn subcommands(&self) -> Vec<std::rc::Rc<dyn CliCommand<'static>>> {
+    #[inline]
+    fn subcommands(&self) -> Vec<Rc<dyn CliCommand<'static>>> {
         self.subcommands.clone()
     }
+    #[inline]
     fn execute(&self, _cli: &Cli<'_>) {}
 }
 
@@ -81,7 +108,7 @@ pub struct CliCmdBuilder {
     short_about: String,
     long_about: String,
     flags: Vec<CliFlag>,
-    subcommands: Vec<std::rc::Rc<dyn CliCommand<'static>>>,
+    subcommands: Vec<Rc<dyn CliCommand<'static>>>,
 }
 
 impl CliCmdBuilder {
@@ -99,7 +126,7 @@ impl CliCmdBuilder {
     }
 
     /// Add a subcommand to the command
-    pub fn add_subcommand(mut self, subcommand: std::rc::Rc<dyn CliCommand<'static>>) -> Self {
+    pub fn add_subcommand(mut self, subcommand: Rc<dyn CliCommand<'static>>) -> Self {
         self.subcommands.push(subcommand);
         self
     }
