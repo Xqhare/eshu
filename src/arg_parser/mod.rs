@@ -58,7 +58,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                 buf = Some(&params[params_index.saturating_add(1)..]);
             }
             match state {
-                State::ShortFlag => match parse_short_flag(arg, &cli_builder, next_arg, buf) {
+                State::ShortFlag => match parse_short_flag(arg, &cli_builder, next_arg, buf)? {
                     Some((long_flag, (index, store))) => {
                         if let Store::Value(_) | Store::KeyValue(_) = &store {
                             args.next();
@@ -70,7 +70,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                     }
                     None => unknown_args.push(arg.to_string()),
                 },
-                State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg, buf) {
+                State::LongFlag => match parse_long_flag(arg, &cli_builder, next_arg, buf)? {
                     Some((long_flag, (index, store))) => {
                         if !arg.contains('=') {
                             if let Store::Value(_) | Store::KeyValue(_) = &store {
@@ -107,7 +107,7 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
                 }
                 State::Positional => {
                     if let Some((name, sub_cli)) =
-                        parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec())
+                        parse_subcommand(arg, &cli_builder, &params[params_index..].to_vec())?
                     {
                         sub_cmd_cli.insert(name, sub_cli);
                         break;

@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
+use nemesis::{NemesisError, NemesisResultExt};
 
 use crate::{
-    Cli, CliFlag, StoreSyntax, StoreType,
+    Cli, CliFlag, EshuErrorKind, StoreSyntax, StoreType,
     cli::builder::CliBuilder,
-    utils::{Store, is_positional, write_err_and_exit},
+    utils::{Store, is_positional},
 };
 
 /// Inserts a flag into the entered flags map
@@ -61,7 +62,7 @@ pub fn parse_long_flag(
     cli: &CliBuilder,
     next_arg: Option<&str>,
     detached_list_args: Option<&[String]>,
-) -> Option<(String, (usize, Store))> {
+) -> Result<Option<(String, (usize, Store))>, NemesisError> {
     let mut arg = arg;
     if let Some(new_arg) = arg.strip_prefix("--") {
         arg = new_arg;
@@ -79,9 +80,9 @@ pub fn parse_long_flag(
         };
         if parsed_long_flag == flag.long_flag {
             if flag.storing {
-                return Some(handle_store(arg, index, flag, next_arg, detached_list_args));
+                return Ok(Some(handle_store(arg, index, flag, next_arg, detached_list_args)?));
             } else {
-                return Some((flag.long_flag.clone(), (index, Store::Exists)));
+                return Ok(Some((flag.long_flag.clone(), (index, Store::Exists))));
             }
         } else if flag.long_flag.starts_with(parsed_long_flag) {
             partials.push((flag.long_flag.as_str(), index));
@@ -91,19 +92,19 @@ pub fn parse_long_flag(
     if partials.len() == 1 {
         let partial = &cli.flags[partials[0].1];
         if partial.storing {
-            return Some(handle_store(
+            return Ok(Some(handle_store(
                 arg,
                 partials[0].1,
                 &partial,
                 next_arg,
                 detached_list_args,
-            ));
+            )?));
         } else {
-            return Some((partial.long_flag.clone(), (partials[0].1, Store::Exists)));
+            return Ok(Some((partial.long_flag.clone(), (partials[0].1, Store::Exists))));
         }
     }
 
-    None
+    Ok(None)
 }
 
 fn handle_store(
@@ -112,7 +113,7 @@ fn handle_store(
     cli_flag: &CliFlag,
     next_arg: Option<&str>,
     detached_list_args: Option<&[String]>,
-) -> (String, (usize, Store)) {
+) -> Result<(String, (usize, Store)), NemesisError> {
     let mut store = Store::Exists;
     let mut value = None;
 
@@ -133,12 +134,15 @@ fn handle_store(
 
     if cli_flag.required_store && value.is_none() {
         let req_syntax = match &cli_flag.store_syntax.expect("Store syntax not set") {
-            StoreSyntax::Attached => &format!("--{}=VALUE", cli_flag.long_flag),
-            StoreSyntax::Detached => &format!("--{} VALUE", cli_flag.long_flag),
+            StoreSyntax::Attached => format!("--{}=VALUE", cli_flag.long_flag),
+            StoreSyntax::Detached => format!("--{} VALUE", cli_flag.long_flag),
         };
-        write_err_and_exit(&format!(
-            "Usage error: Flag '--{}' requires an argument. Please provide one via the following syntax: '{}'",
-            cli_flag.long_flag, req_syntax
+        return Err(NemesisError::new(
+            "eshu::parser",
+            EshuErrorKind::MissingArgument {
+                flag: format!("--{}", cli_flag.long_flag),
+                expected_syntax: req_syntax,
+            },
         ));
     }
 
@@ -168,7 +172,7 @@ fn handle_store(
         }
     }
 
-    (cli_flag.long_flag.clone(), (index, store))
+    Ok((cli_flag.long_flag.clone(), (index, store)))
 }
 
 /// Parse a subcommand
@@ -187,9 +191,9 @@ pub fn parse_subcommand<'a>(
     arg: &str,
     cli: &CliBuilder<'a>,
     args: &Vec<String>,
-) -> Option<(String, Cli<'a>)> {
+) -> Result<Option<(String, Cli<'a>)>, NemesisError> {
     if arg.is_empty() {
-        return None;
+        return Ok(None);
     }
     let mut partials = Vec::new();
     let mut execute = None;
@@ -224,11 +228,15 @@ pub fn parse_subcommand<'a>(
         let mut inner_args = Vec::with_capacity(args.len().saturating_add(1));
         inner_args.push("".to_string());
         inner_args.extend_from_slice(args);
-        let inner_cli = inner_cli.try_parse_custom(inner_args).expect("err");
 
-        Some((execute.name().to_string(), inner_cli))
+        let inner_cli = inner_cli
+            .try_parse_custom(inner_args)
+            .add_source("eshu::parser")
+            .add_ctx(format!("Parsing arguments for subcommand '{}'", execute.name()))?;
+
+        Ok(Some((execute.name().to_string(), inner_cli)))
     } else {
-        None
+        Ok(None)
     }
 }
 
@@ -244,7 +252,7 @@ pub fn parse_short_flag(
     cli: &CliBuilder,
     next_arg: Option<&str>,
     detached_list_args: Option<&[String]>,
-) -> Option<(String, (usize, Store))> {
+) -> Result<Option<(String, (usize, Store))>, NemesisError> {
     for (index, flag) in cli.flags.iter().enumerate() {
         if flag.flag_char == Some(arg.chars().last().unwrap()) {
             if flag.storing {
@@ -260,17 +268,18 @@ pub fn parse_short_flag(
                 if flag.required_store && value.is_none() {
                     let req_syntax = match &flag.store_syntax.expect("Store syntax not set") {
                         StoreSyntax::Attached => {
-                            &format!("-{}={}", arg.chars().last().unwrap(), "VALUE")
+                            format!("-{}={}", arg.chars().last().unwrap(), "VALUE")
                         }
                         StoreSyntax::Detached => {
-                            &format!("-{} {}", arg.chars().last().unwrap(), "VALUE")
+                            format!("-{} {}", arg.chars().last().unwrap(), "VALUE")
                         }
                     };
-                    write_err_and_exit(&format!(
-                        "Usage error: Flag '-{}' (--{}) requires an argument. Please provide one via the following syntax: '{}'",
-                        arg.chars().last().unwrap(),
-                        flag.long_flag,
-                        req_syntax
+                    return Err(NemesisError::new(
+                        "eshu::parser",
+                        EshuErrorKind::MissingArgument {
+                            flag: format!("-{} (--{})", arg.chars().last().unwrap(), flag.long_flag),
+                            expected_syntax: req_syntax,
+                        },
                     ));
                 }
 
@@ -279,15 +288,15 @@ pub fn parse_short_flag(
                         StoreType::Value => {
                             if let Some(detached_list_args) = detached_list_args {
                                 // Ignore value here, end-of-flag marker was found
-                                return Some((
+                                return Ok(Some((
                                     flag.long_flag.clone(),
                                     (index, Store::Value(detached_list_args.to_vec())),
-                                ));
+                                )));
                             }
-                            return Some((
+                            return Ok(Some((
                                 flag.long_flag.clone(),
                                 (index, Store::Value(vec![val])),
-                            ));
+                            )));
                         }
                         StoreType::KeyValue => {
                             if let Some(detached_list_args) = detached_list_args {
@@ -298,13 +307,13 @@ pub fn parse_short_flag(
                                         arg.split_once('=').expect("Must be key=value");
                                     map.insert(key.to_string(), val.to_string());
                                 }
-                                return Some((
+                                return Ok(Some((
                                     flag.long_flag.clone(),
                                     (index, Store::KeyValue(map)),
-                                ));
+                                )));
                             }
                             let (key, v) = val.split_once('=').expect("Must be key=value");
-                            return Some((
+                            return Ok(Some((
                                 flag.long_flag.clone(),
                                 (
                                     index,
@@ -313,13 +322,13 @@ pub fn parse_short_flag(
                                         v.to_string(),
                                     )])),
                                 ),
-                            ));
+                            )));
                         }
                     }
                 }
             }
-            return Some((flag.long_flag.clone(), (index, Store::Exists)));
+            return Ok(Some((flag.long_flag.clone(), (index, Store::Exists))));
         }
     }
-    None
+    Ok(None)
 }

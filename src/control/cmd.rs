@@ -72,7 +72,7 @@ impl CliCommand<'static> for CliCmd {
     fn subcommands(&self) -> Vec<std::rc::Rc<dyn CliCommand<'static>>> {
         self.subcommands.clone()
     }
-    fn execute(&self, cli: &Cli<'_>) {}
+    fn execute(&self, _cli: &Cli<'_>) {}
 }
 
 /// Builder for `CliCmd`

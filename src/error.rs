@@ -21,7 +21,9 @@ pub enum EshuErrorKind {
     UnknownArgument(String),
     /// A flag requiring an argument was passed without one
     MissingArgument {
+        /// The flag name (e.g., `--flag` or `-f`)
         flag: String,
+        /// The expected syntax for the flag's argument
         expected_syntax: String,
     },
     /// Wrapper for standard I/O errors
