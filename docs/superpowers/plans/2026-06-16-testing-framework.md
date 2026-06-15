@@ -839,7 +839,7 @@
 **Files:**
 - Modify: `tests/parser_tests/xff.rs`
 
-- [ ] **Step 1: Write tests for Store to XffValue casting**
+- [x] **Step 1: Write tests for Store to XffValue casting**
   Add the following tests to `tests/parser_tests/xff.rs`:
   ```rust
   use std::collections::BTreeMap;
@@ -876,11 +876,11 @@
   }
   ```
 
-- [ ] **Step 2: Run XffValue tests to verify they pass**
+- [x] **Step 2: Run XffValue tests to verify they pass**
   Run: `cargo test --test parser_tests xff`
   Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run:
   ```bash
   git add tests/parser_tests/xff.rs
