@@ -209,7 +209,6 @@ fn get_flag_store(
                 }
             }
             Some(StoreSyntax::Detached) => {
-                // TODO: add to the doc that only the *last* flag (in the entire group) can have a detached value
                 if index == arg.len()
                     && let Some(next_arg) = next_arg
                     && is_positional(next_arg)

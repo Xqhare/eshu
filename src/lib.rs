@@ -32,16 +32,8 @@
 )]
 
 // For 1.0.0:
-// TODO: Add tests
 // TODO: Add examples
 // TODO: Doc
-// TODO: Man page generation (big one!)
-// TODO: Make safe:
-//      TODO: Sweep for expects, write_err_and_exit, unwrap
-//      TODO: Make parse bubble up errors
-//          TODO: provide the write_err_and_exit function for convenience.
-//          TODO: Keep errors easy to read and understand (make them more verbose; I would love to
-//          just throw them into write_err_and_exit)
 
 mod arg_parser;
 mod cli;
@@ -53,4 +45,3 @@ pub use cli::Cli;
 pub use control::*;
 pub use error::EshuErrorKind;
 pub use utils::Store;
-
