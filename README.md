@@ -12,11 +12,11 @@ You can learn more about that [here](https://blog.xqhare.net/posts/why_solve_pro
 
 ### Open Until Considered Stable
 
-- [ ] Error handling refactoring
+- [x] Error handling refactoring
 - [ ] Doc
-    - [ ] Examples
+    - [x] Examples
     - [ ] Readme
-- [ ] Tests
+- [x] Tests
 
 ## Features
 

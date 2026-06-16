@@ -18,6 +18,8 @@ pub struct CliBuilder<'a> {
     pub(crate) handle_unknown_args: bool,
     basic: bool,
     pub(crate) auto_execution: bool,
+    pub(crate) author: String,
+    pub(crate) publish_date: String,
 }
 
 impl<'a> CliBuilder<'a> {
@@ -51,7 +53,18 @@ impl<'a> CliBuilder<'a> {
             handle_unknown_args: false,
             basic: false,
             auto_execution: true,
+            author: String::new(),
+            publish_date: String::new(),
         }
+    }
+    /// Sets the author and publish date for the man page
+    ///
+    /// # Note
+    /// Only relevant for man pages. Not relevant for help output.
+    pub fn with_author_and_publish_date(mut self, author: String, publish_date: String) -> Self {
+        self.author = author;
+        self.publish_date = publish_date;
+        self
     }
     /// Disables the auto execution of subcommands
     ///

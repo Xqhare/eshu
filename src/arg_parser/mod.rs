@@ -156,6 +156,8 @@ pub fn parse_args(cli_builder: CliBuilder, params: Vec<String>) -> EshuResult<Cl
         about: cli_builder.about,
         flags: cli_builder.flags,
         sub_commands: cli_builder.sub_commands,
+        author: cli_builder.author,
+        publish_date: cli_builder.publish_date,
         entered_flags,
         unknown_args,
         stray_positional_args,

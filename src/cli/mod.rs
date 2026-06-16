@@ -2,12 +2,13 @@ use std::{collections::BTreeMap, rc::Rc};
 
 use crate::{
     CliCommand, CliFlag,
-    cli::{builder::CliBuilder, help::help},
+    cli::{builder::CliBuilder, help::help, roff::generate_roff_manpage},
     utils::{RoffString, Store},
 };
 
 pub mod builder;
 mod help;
+pub mod roff;
 
 /// Generate a command line interface
 #[expect(
@@ -34,6 +35,10 @@ pub struct Cli<'a> {
     pub(crate) stray_positional_args: Vec<String>,
     /// The cli of the subcommands for each subcommand called
     pub(crate) sub_cmd_cli: BTreeMap<String, Cli<'a>>,
+    /// The author of the program, ONLY RELEVANT FOR MANPAGES
+    pub(crate) author: String,
+    /// The publish date of the program, ONLY RELEVANT FOR MANPAGES
+    pub(crate) publish_date: String,
 }
 
 impl<'a> Cli<'a> {
@@ -127,9 +132,8 @@ impl<'a> Cli<'a> {
     /// To learn more, check out the [man(7) man page](https://man7.org/linux/man-pages/man7/man.7.html) and the [man(1) man page](https://man7.org/linux/man-pages/man1/man.1.html).
     #[must_use]
     #[inline]
-    #[expect(clippy::todo, reason = "TODO: Create a valid manpage for the cli")]
     pub fn make_manpage(&self) -> RoffString {
-        todo!("create a valid manpage for the cli - complex, do last")
+        generate_roff_manpage(&self)
     }
 
     /// Create the help string
