@@ -129,7 +129,48 @@ eshu = { git = "https://github.com/xqhare/eshu" }
 ### Example
 
 ```rust
+use eshu::{Cli, CliFlag, StoreSyntax, StoreType};
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Define flags and options
+    let verbose_flag = CliFlag::new("verbose")
+        .with_flag_char('v')
+        .with_about("Verbose mode", "Print detailed debug information.")
+        .build()?;
+
+    let file_flag = CliFlag::new("file")
+        .with_flag_char('f')
+        .with_about("Target file path", "Specify the path to the input file.")
+        .with_store(StoreType::Value, StoreSyntax::Detached)
+        .build()?;
+
+    // 2. Configure and parse CLI
+    let cli = Cli::new("my-tool")
+        .with_version("1.0.0")
+        .with_about("A command line interface built with Eshu")
+        .add_flag(verbose_flag)
+        .add_flag(file_flag)
+        .parse();
+
+    // 3. Extract and use parsed values
+    if cli.is_flag_entered("verbose") {
+        println!("Verbose logging is enabled.");
+    }
+
+    if let Some(store) = cli.get_flag_store("file") {
+        if let Some(files) = store.as_value() {
+            println!("Processing file: {:?}", files.first());
+        }
+    }
+
+    // Read any stray positional arguments
+    let positionals = cli.get_stray_positional_args();
+    if !positionals.is_empty() {
+        println!("Additional inputs: {:?}", positionals);
+    }
+
+    Ok(())
+}
 ```
 
 ## License
