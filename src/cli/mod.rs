@@ -149,12 +149,12 @@ impl<'a> Cli<'a> {
     }
 
     /// Print the help to stdout
-    pub(crate) fn print_help(&self) {
+    pub fn print_help(&self) {
         println!("{}", help(self));
     }
 
     /// Print the version to stdout
-    pub(crate) fn print_version(&self) {
+    pub fn print_version(&self) {
         // Taken 1 to 1 from `git --version`
         println!("{} version {}", self.name, self.version);
     }
