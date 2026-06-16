@@ -30,7 +30,6 @@ pub fn is_positional(arg: &str) -> bool {
 /// Also accepts all limitations of using `OsString` and lossy conversion to `String`
 pub fn get_params_make_args() -> Vec<String> {
     let args: Vec<String> = args_os()
-        .skip(1) // Assume the program name is the first argument, *ALWAYS*;
         .map(|s| s.to_string_lossy().to_string()) // There will be edge cases. Especially
         // cross platform.
         .collect();
