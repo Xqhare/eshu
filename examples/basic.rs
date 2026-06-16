@@ -9,13 +9,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let output_flag = CliFlag::new("output")
         .with_flag_char('o')
-        .with_about("Output file path", "Specify the path where results will be saved.")
+        .with_about(
+            "Output file path",
+            "Specify the path where results will be saved.",
+        )
         .with_store(StoreType::Value, StoreSyntax::Detached)
         .build()?;
 
     let define_flag = CliFlag::new("define")
         .with_flag_char('D')
-        .with_about("Define variables", "Define config options using key=value pairs.")
+        .with_about(
+            "Define variables",
+            "Define config options using key=value pairs.",
+        )
         .with_store(StoreType::KeyValue, StoreSyntax::Detached)
         .build()?;
 

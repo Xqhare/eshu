@@ -6,11 +6,17 @@ fn test_make_manpage_simple() {
     let cli = Cli::new("test-cli")
         .with_version("1.2.3")
         .with_about("A simple test CLI program.")
-        .with_author_and_publish_date("Jane Doe <jane@example.com>".to_string(), "2026-06-16".to_string())
+        .with_author_and_publish_date(
+            "Jane Doe <jane@example.com>".to_string(),
+            "2026-06-16".to_string(),
+        )
         .add_flag(
             CliFlag::new("verbose")
                 .with_flag_char('v')
-                .with_about("verbose output", "Print extra verbose details when executing.")
+                .with_about(
+                    "verbose output",
+                    "Print extra verbose details when executing.",
+                )
                 .build()
                 .unwrap(),
         )
@@ -37,27 +43,27 @@ fn test_make_manpage_simple() {
                         .with_flag_char('d')
                         .with_about("Detailed output", "Provide more detailed output.")
                         .build()
-                        .unwrap()
+                        .unwrap(),
                 )
                 .build()
-                .unwrap()
+                .unwrap(),
         ))
         .try_parse_custom(vec!["test-cli".to_string()])
         .unwrap();
 
     let manpage = cli.make_manpage();
     println!("--- MANPAGE START ---\n{}\n--- MANPAGE END ---", manpage);
-    
+
     // Check main sections exist
     assert!(manpage.contains(".TH test-cli 1 \"2026-06-16\" \"1.2.3\" \"User Commands\""));
     assert!(manpage.contains(".SH NAME\ntest-cli"));
     assert!(manpage.contains(".SH DESCRIPTION\nA simple test CLI program."));
     assert!(manpage.contains(".SH FLAGS"));
-    
+
     // Check flags are formatted correctly
     assert!(manpage.contains("\\fB\\-v\\fR, \\fB\\-\\-verbose\\fR"));
     assert!(manpage.contains("verbose output Print extra verbose details when executing."));
-    
+
     // Check flags with stores are formatted correctly
     assert!(manpage.contains("\\fB\\-f\\fR, \\fB\\-\\-file\\fR \\fIVALUE\\fR"));
     assert!(manpage.contains("\\fB\\-\\-config\\fR=\\fIKEY=VALUE\\fR"));

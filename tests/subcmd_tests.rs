@@ -86,13 +86,13 @@ fn nested_subcommand() {
     assert!(cli.is_ok());
     let cli = cli.unwrap();
     assert!(cli.is_subcommand_entered("parent"));
-    
+
     let parent_cli = cli.get_subcommand_cli("parent").unwrap();
     assert!(parent_cli.is_subcommand_entered("child"));
-    
+
     let child_cli = parent_cli.get_subcommand_cli("child").unwrap();
     assert!(child_cli.is_flag_entered("flag"));
-    
+
     // Verify isolation: parent should not have parsed the child flag
     assert!(!parent_cli.is_flag_entered("flag"));
 }
@@ -104,19 +104,11 @@ fn unrecognized_subcommand() {
         .add_command(std::rc::Rc::new(
             CliCmd::new("cmd")
                 .with_about("cmd", "cmd")
-                .add_flag(
-                    CliFlag::new("flag")
-                        .with_about("f", "f")
-                        .build()
-                        .unwrap(),
-                )
+                .add_flag(CliFlag::new("flag").with_about("f", "f").build().unwrap())
                 .build()
                 .unwrap(),
         ))
-        .try_parse_custom(vec![
-            "test-cli".to_string(),
-            "unknown".to_string(),
-        ]);
+        .try_parse_custom(vec!["test-cli".to_string(), "unknown".to_string()]);
 
     assert!(cli.is_err());
     let err = cli.unwrap_err();
@@ -128,4 +120,3 @@ fn unrecognized_subcommand() {
         _ => panic!("Expected EshuErrorKind::UnknownArgument"),
     }
 }
-

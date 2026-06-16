@@ -1,4 +1,4 @@
-use eshu::{Cli, CliFlag, StoreSyntax, StoreType, EshuErrorKind};
+use eshu::{Cli, CliFlag, EshuErrorKind, StoreSyntax, StoreType};
 
 #[test]
 fn test_key_value_detached() {
@@ -23,7 +23,11 @@ fn test_key_value_detached() {
     assert!(cli.is_ok());
     let cli = cli.unwrap();
     assert!(cli.is_flag_entered("config"));
-    let store = cli.get_flag_store("config").unwrap().as_key_value().unwrap();
+    let store = cli
+        .get_flag_store("config")
+        .unwrap()
+        .as_key_value()
+        .unwrap();
     assert_eq!(store.get("host").unwrap(), "localhost");
     assert_eq!(store.get("port").unwrap(), "8080");
 }
@@ -48,7 +52,11 @@ fn test_key_value_attached() {
 
     assert!(cli.is_ok());
     let cli = cli.unwrap();
-    let store = cli.get_flag_store("config").unwrap().as_key_value().unwrap();
+    let store = cli
+        .get_flag_store("config")
+        .unwrap()
+        .as_key_value()
+        .unwrap();
     assert_eq!(store.get("host").unwrap(), "localhost");
     assert_eq!(store.get("port").unwrap(), "8080");
 }
@@ -74,7 +82,10 @@ fn test_key_value_malformed() {
     let err = cli.unwrap_err();
     let leaf_err = err.downcast_ref::<EshuErrorKind>().unwrap();
     match leaf_err {
-        EshuErrorKind::MissingArgument { flag, expected_syntax } => {
+        EshuErrorKind::MissingArgument {
+            flag,
+            expected_syntax,
+        } => {
             assert_eq!(flag, "-config (--config)");
             assert_eq!(expected_syntax, "-key=value");
         }

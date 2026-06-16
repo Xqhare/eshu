@@ -115,10 +115,7 @@ fn make_flag(flag: &CliFlag, out: &mut RoffString) {
         ));
     } else {
         // Format as: \fB\-\-long\-flag\fR[suffix]
-        out.push_str(&format!(
-            "\\fB\\-\\-{}\\fR{}",
-            escaped_long, store_suffix
-        ));
+        out.push_str(&format!("\\fB\\-\\-{}\\fR{}", escaped_long, store_suffix));
     }
     out.push_str(BREAK);
 
@@ -211,4 +208,3 @@ fn make_author(cli: &Cli, out: &mut RoffString) {
         }
     }
 }
-

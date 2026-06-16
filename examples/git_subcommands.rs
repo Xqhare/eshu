@@ -9,9 +9,14 @@ impl AddCommand {
     fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let dry_run = CliFlag::new("dry-run")
             .with_flag_char('n')
-            .with_about("Perform a dry run", "Show files that would be added without actually doing it.")
+            .with_about(
+                "Perform a dry run",
+                "Show files that would be added without actually doing it.",
+            )
             .build()?;
-        Ok(Self { flags: vec![dry_run] })
+        Ok(Self {
+            flags: vec![dry_run],
+        })
     }
 }
 
@@ -56,10 +61,15 @@ impl CommitCommand {
     fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let message = CliFlag::new("message")
             .with_flag_char('m')
-            .with_about("Commit message", "Use the given message as the commit message.")
+            .with_about(
+                "Commit message",
+                "Use the given message as the commit message.",
+            )
             .with_required_store(StoreType::Value, StoreSyntax::Detached)
             .build()?;
-        Ok(Self { flags: vec![message] })
+        Ok(Self {
+            flags: vec![message],
+        })
     }
 }
 
@@ -73,7 +83,8 @@ impl CliCommand<'static> for CommitCommand {
     }
 
     fn long_about(&self) -> String {
-        "Create a new commit containing the current contents of the index and the log message.".to_string()
+        "Create a new commit containing the current contents of the index and the log message."
+            .to_string()
     }
 
     fn flags(&self) -> &Vec<CliFlag> {

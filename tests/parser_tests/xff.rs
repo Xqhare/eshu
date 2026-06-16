@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
-use eshu::Store;
 use athena::XffValue;
+use eshu::Store;
+use std::collections::BTreeMap;
 
 #[test]
 fn test_xff_exists() {

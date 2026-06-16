@@ -119,7 +119,7 @@ fn test_programmatic_downcast() {
         Ok(_) => panic!("Expected error, got Ok"),
         Err(e) => e,
     };
-    
+
     assert_eq!(err.source_name(), "eshu::builder");
     if let Some(eshu_err) = err.downcast_ref::<eshu::EshuErrorKind>() {
         match eshu_err {
@@ -135,12 +135,7 @@ fn test_programmatic_downcast() {
 fn duplicate_flag_name_error() {
     let cli = Cli::new("test-cli")
         .with_version("0.0.0")
-        .add_flag(
-            CliFlag::new("flag")
-                .with_about("f", "f")
-                .build()
-                .unwrap(),
-        )
+        .add_flag(CliFlag::new("flag").with_about("f", "f").build().unwrap())
         .add_flag(
             CliFlag::new("flag")
                 .with_about("duplicate", "duplicate")
@@ -193,9 +188,7 @@ fn duplicate_flag_char_error() {
 
 #[test]
 fn invalid_flag_name_whitespace() {
-    let flag = CliFlag::new("invalid name")
-        .with_about("f", "f")
-        .build();
+    let flag = CliFlag::new("invalid name").with_about("f", "f").build();
     assert!(flag.is_err());
     let err = flag.unwrap_err();
     let leaf_err = err.downcast_ref::<eshu::EshuErrorKind>().unwrap();
@@ -206,6 +199,3 @@ fn invalid_flag_name_whitespace() {
         _ => panic!("Expected EshuErrorKind::InvalidFlagName"),
     }
 }
-
-
-
