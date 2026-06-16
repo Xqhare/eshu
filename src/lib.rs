@@ -32,7 +32,6 @@
 )]
 
 // For 1.0.0:
-// TODO: Add examples
 // TODO: Doc
 
 mod arg_parser;

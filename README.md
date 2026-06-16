@@ -7,14 +7,12 @@ You can learn more about that [here](https://blog.xqhare.net/posts/why_solve_pro
 
 ## Roadmap
 
-- Rework help generation to use correctly use unicode characters for width, instead of assuming ASCII
-- Generate man-pages in valid `ROFF` format
-
 ### Open Until Considered Stable
 
 - [x] Error handling refactoring
 - [ ] Doc
-    - [ ] Examples
+    - [ ] API
+    - [x] Examples
     - [ ] Readme
 - [x] Tests
 
