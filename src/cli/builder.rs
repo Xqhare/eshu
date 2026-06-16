@@ -8,6 +8,7 @@ use crate::{
 };
 use nemesis::NemesisError;
 
+/// A builder for constructing and parsing a [`Cli`].
 #[expect(clippy::module_name_repetitions, reason = "Builder pattern")]
 pub struct CliBuilder<'a> {
     pub(crate) name: String,

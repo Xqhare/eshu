@@ -10,7 +10,15 @@ pub mod builder;
 mod help;
 pub mod roff;
 
-/// Generate a command line interface
+/// Represents the parsed state of the command line interface.
+///
+/// `Cli` is built using the builder pattern via [`Cli::new`] and [`CliBuilder`].
+/// Once parsed (using `.parse()`), it provides methods to query:
+/// - Entered flags (`is_flag_entered`, `get_flag_store`)
+/// - Positional arguments (`get_stray_positional_args`)
+/// - Subcommands (`is_subcommand_entered`, `get_subcommand_cli`)
+///
+/// It also enables exporting manual pages programmatically using [`Cli::make_manpage`].
 #[expect(
     clippy::struct_field_names,
     reason = "Easier to reason about; Holds itself"

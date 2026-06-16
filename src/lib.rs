@@ -40,7 +40,7 @@ mod control;
 mod error;
 mod utils;
 
-pub use cli::Cli;
+pub use cli::{Cli, builder::CliBuilder};
 pub use control::*;
 pub use error::EshuErrorKind;
 pub use utils::Store;
