@@ -15,7 +15,7 @@
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Write code block in README.md**
+- [x] **Step 1: Write code block in README.md**
   Locate the empty `### Example` block in `README.md` (around line 131) and replace it with:
   ```rust
   use eshu::{Cli, CliFlag, StoreSyntax, StoreType};
@@ -62,11 +62,11 @@
   }
   ```
 
-- [ ] **Step 2: Run doctests to verify it compiles and runs**
+- [x] **Step 2: Run doctests to verify it compiles and runs**
   Run: `cargo test --doc`
   Expected: PASS
 
-- [ ] **Step 3: Commit changes**
+- [x] **Step 3: Commit changes**
   ```bash
   git add README.md
   git commit -m "docs: add comprehensive usage example to README"
@@ -79,7 +79,7 @@
 **Files:**
 - Modify: `src/cli/mod.rs:13-42`
 
-- [ ] **Step 1: Update the docstring of the Cli struct**
+- [x] **Step 1: Update the docstring of the Cli struct**
   Locate lines 13-19 of `src/cli/mod.rs`:
   ```rust
   /// Generate a command line interface
@@ -99,11 +99,11 @@
   #[expect(
   ```
 
-- [ ] **Step 2: Build documentation to verify syntax**
+- [x] **Step 2: Build documentation to verify syntax**
   Run: `cargo doc --no-deps`
   Expected: PASS with no syntax or missing reference warnings
 
-- [ ] **Step 3: Commit changes**
+- [x] **Step 3: Commit changes**
   ```bash
   git add src/cli/mod.rs
   git commit -m "docs(cli): enhance Cli struct documentation"
@@ -116,7 +116,7 @@
 **Files:**
 - Modify: `src/control/mod.rs:9-40`
 
-- [ ] **Step 1: Update docstrings for StoreType and StoreSyntax**
+- [x] **Step 1: Update docstrings for StoreType and StoreSyntax**
   Locate lines 9-40 of `src/control/mod.rs`:
   ```rust
   /// The type of the store
@@ -154,11 +154,11 @@
   }
   ```
 
-- [ ] **Step 2: Build documentation to verify syntax**
+- [x] **Step 2: Build documentation to verify syntax**
   Run: `cargo doc --no-deps`
   Expected: PASS
 
-- [ ] **Step 3: Commit changes**
+- [x] **Step 3: Commit changes**
   ```bash
   git add src/control/mod.rs
   git commit -m "docs(control): enhance StoreType and StoreSyntax documentation"
@@ -171,7 +171,7 @@
 **Files:**
 - Modify: `src/control/cmd.rs:22-44`
 
-- [ ] **Step 1: Update the docstring of the CliCommand trait**
+- [x] **Step 1: Update the docstring of the CliCommand trait**
   Locate lines 22-23 of `src/control/cmd.rs`:
   ```rust
   /// Define a custom command
@@ -187,11 +187,11 @@
   pub trait CliCommand<'c> {
   ```
 
-- [ ] **Step 2: Run all doctests and generate final documentation**
+- [x] **Step 2: Run all doctests and generate final documentation**
   Run: `cargo test --doc && cargo doc --no-deps`
   Expected: PASS with no warnings or errors
 
-- [ ] **Step 3: Commit changes**
+- [x] **Step 3: Commit changes**
   ```bash
   git add src/control/cmd.rs
   git commit -m "docs(control): enhance CliCommand trait documentation"
