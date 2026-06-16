@@ -7,19 +7,22 @@ You can learn more about that [here](https://blog.xqhare.net/posts/why_solve_pro
 
 ## Roadmap
 
-### Open Until Considered Stable
-
-- [x] Error handling refactoring
-- [ ] Doc
-    - [ ] API
-    - [x] Examples
-    - [ ] Readme
-- [x] Tests
+- [ ] Rework of `help` and `man` generation
+    - [ ] `man` generation is the most basic I could get away with
+        - [ ] Support for separate man pages for subcommands
+        - [ ] Support for example sections
+        - [ ] Support for usage sections
+    - [ ] `help` generation is the more robust but lacking formatting if the terminal supports it
+        - [ ] Most of the needed backend is already implemented in talos, but would need to be extracted, maybe into athena?
+            - Talking generating valid ANSI output
+        - [ ] Layout assumes single byte characters (ASCII) and needs to be updated for UTF-8
 
 ## Features
 
 - _**No dependencies**_: All code is written by me or part of std.
 - _**`XffValue` Integration**_: Easy casting of returned values into `XffValues`.
+- _**`Nemesis` Error Handling**_: Easy error handling with `Nemesis`. First of all my projects to make use of my [error handling library](https://github.com/xqhare/nemesis).
+- _**Extensive Testing and Documentation**_: Extensive testing and documentation.
 
 ## Naming
 
@@ -108,7 +111,7 @@ Often the term flag, option, and argument are thrown around interchangeably, and
 
 `Eshu` simplifies this by using a unified flag for its API.
 
-Any flag may be defined to be able to hold values, OR key value pairs.
+Any flag may be defined to be able to hold values, OR key value pairs as well as defining these values as being either required or optional.
 
 ### Best Practices Using `Eshu`
 
