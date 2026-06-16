@@ -1,4 +1,7 @@
-use std::{fmt::Debug, rc::Rc};
+use std::{
+    fmt::{Debug, Formatter, Result},
+    rc::Rc,
+};
 
 use crate::{
     Cli, CliFlag,
@@ -7,7 +10,8 @@ use crate::{
 use nemesis::NemesisError;
 
 impl Debug for dyn CliCommand<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         f.debug_struct("CliCommand")
             .field("name", &self.name())
             .field("short_about", &self.short_about())

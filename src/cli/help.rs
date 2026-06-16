@@ -128,7 +128,7 @@ fn make_flag_syntax(flag: &CliFlag, out: &mut TermWriter) {
         let val_str = match flag.store_type {
             Some(StoreType::Value) => "VALUE",
             Some(StoreType::KeyValue) => "KEY=VALUE",
-            None => "VALUE",
+            None => "", // Shouldn't happen, but dont want to error / crash
         };
         match (flag.store_syntax, flag.required_store) {
             (Some(StoreSyntax::Attached), true) => format!("={val_str}"),

@@ -1,4 +1,4 @@
-use std::{process::exit, rc::Rc};
+use std::{collections::HashSet, process::exit, rc::Rc};
 
 use crate::{
     Cli, CliCommand, CliFlag, EshuErrorKind,
@@ -246,8 +246,8 @@ impl<'a> CliBuilder<'a> {
                 EshuErrorKind::NoFlagsOrCommands,
             ));
         }
-        let mut flag_names = std::collections::HashSet::new();
-        let mut flag_chars = std::collections::HashSet::new();
+        let mut flag_names = HashSet::new();
+        let mut flag_chars = HashSet::new();
         for flag in &self.flags {
             if !flag_names.insert(&flag.long_flag) {
                 return Err(NemesisError::new(

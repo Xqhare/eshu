@@ -1,5 +1,7 @@
 use crate::{Cli, CliCommand, CliFlag, StoreSyntax, StoreType, utils::RoffString};
 
+use std::fmt::Write as _;
+
 /// Generate a roff manpage
 ///
 /// Only the most basic information is included
@@ -82,7 +84,10 @@ fn make_sh_description(cli: &Cli, out: &mut RoffString) {
         out.push_str(BREAK);
     }
 }
-
+#[expect(
+    clippy::let_underscore_must_use,
+    reason = "We don't care about the return value"
+)]
 fn make_flag(flag: &CliFlag, out: &mut RoffString) {
     out.push_str(".TP");
     out.push_str(BREAK);
@@ -94,7 +99,7 @@ fn make_flag(flag: &CliFlag, out: &mut RoffString) {
         let val_str = match flag.store_type {
             Some(StoreType::Value) => "VALUE",
             Some(StoreType::KeyValue) => "KEY=VALUE",
-            None => "VALUE",
+            None => "", // Shouldn't happen, but dont want to error / crash
         };
         match (flag.store_syntax, flag.required_store) {
             (Some(StoreSyntax::Attached), true) => format!("=\\fI{val_str}\\fR"),
@@ -109,12 +114,13 @@ fn make_flag(flag: &CliFlag, out: &mut RoffString) {
 
     if let Some(c) = flag.flag_char {
         // Format as: \fB\-c\fR, \fB\-\-long\-flag\fR[suffix]
-        out.push_str(&format!(
+        let _ = write!(
+            out,
             "\\fB\\-{c}\\fR, \\fB\\-\\-{escaped_long}\\fR{store_suffix}"
-        ));
+        );
     } else {
         // Format as: \fB\-\-long\-flag\fR[suffix]
-        out.push_str(&format!("\\fB\\-\\-{escaped_long}\\fR{store_suffix}"));
+        let _ = write!(out, "\\fB\\-\\-{escaped_long}\\fR{store_suffix}");
     }
     out.push_str(BREAK);
 
@@ -137,10 +143,14 @@ fn make_flag(flag: &CliFlag, out: &mut RoffString) {
     }
 }
 
+#[expect(
+    clippy::let_underscore_must_use,
+    reason = "We don't care about the return value"
+)]
 fn make_subcmd(cmd: &dyn CliCommand, out: &mut RoffString) {
     out.push_str(".TP");
     out.push_str(BREAK);
-    out.push_str(&format!("\\fB{}\\fR", cmd.name()));
+    let _ = write!(out, "\\fB{}\\fR", cmd.name());
     out.push_str(BREAK);
 
     // Subcommand description (short_about + long_about)
