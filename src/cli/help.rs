@@ -4,7 +4,7 @@ use std::os::fd::AsRawFd as _;
 
 use athena::system::terminal_size;
 
-use crate::{Cli, CliCommand, CliFlag};
+use crate::{Cli, CliCommand, CliFlag, StoreSyntax, StoreType};
 
 const BREAK: &str = "\n";
 const SECTION_BREAK: &str = "\n\n";
@@ -108,14 +108,55 @@ fn make_flag(flag: &CliFlag, out: &mut TermWriter) {
     let _ = write!(out, "--{}", flag.long_flag);
 
     out.pad_to_column(2);
-    out.wrap_text(&flag.short_about, 2);
+    out.push_str("Usage: ");
+    make_flag_syntax(flag, out);
+
+    out.pad_to_column(3);
+    out.wrap_text(&flag.short_about, 3);
     out.push_str(BREAK);
 
     if !flag.long_flag.is_empty() {
-        out.pad_to_column(2);
-        out.wrap_text(&flag.long_about, 2);
+        out.pad_to_column(3);
+        out.wrap_text(&flag.long_about, 3);
         out.push_str(BREAK);
     }
+}
+
+fn make_flag_syntax(flag: &CliFlag, out: &mut TermWriter) {
+    // Format store suffix (e.g. =VALUE or =KEY=VALUE)
+    let store_suffix = if flag.storing {
+        let val_str = match flag.store_type {
+            Some(StoreType::Value) => "VALUE",
+            Some(StoreType::KeyValue) => "KEY=VALUE",
+            None => "VALUE",
+        };
+        match (flag.store_syntax, flag.required_store) {
+            (Some(StoreSyntax::Attached), true) => format!("={val_str}"),
+            (Some(StoreSyntax::Attached), false) => format!("[={val_str}]"),
+            (Some(StoreSyntax::Detached), true) => format!(" {val_str}"),
+            (Some(StoreSyntax::Detached), false) => format!(" [{val_str}]"),
+            _ => String::new(),
+        }
+    } else {
+        String::new()
+    };
+    if let Some(c) = flag.flag_char {
+        out.push_str("-");
+        out.push_str(&c.to_string());
+        out.push_str(&store_suffix);
+        out.push_str(SPACE);
+    } else {
+        out.push_str(SPACE);
+        out.push_str(SPACE);
+        for _ in store_suffix.chars() {
+            out.push_str(SPACE);
+        }
+        out.push_str(SPACE);
+    }
+
+    out.push_str("--");
+    out.push_str(&flag.long_flag);
+    out.push_str(&store_suffix);
 }
 
 fn make_header(cli: &Cli, out: &mut TermWriter) {
