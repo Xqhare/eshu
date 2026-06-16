@@ -6,22 +6,16 @@ pub use cmd::CliCmd;
 pub use cmd::CliCommand;
 pub use flag::CliFlag;
 
-/// The type of the store
-///
-/// * `Value` - A value (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed values.)
-/// * `KeyValue` - A key-value pair (All flags can be passed multiple times. It is up to the implementation how exactly to handle multiple passed key-value pairs.)
+/// The type of data stored by a parsed flag.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StoreType {
-    /// A value
+    /// Stores one or more standalone values (e.g. `--file input.txt`).
     Value,
-    /// A key-value pair
+    /// Stores one or more key-value pairs (e.g. `--define key=value`).
     KeyValue,
 }
 
-/// The syntax of the store
-///
-/// * `Attached` - The flag is attached to the command. (Between the flag and value must be an equal sign `=`)
-/// * `Detached` - The flag is detached from the command. (Between the flag and value must be a space ` `)
+/// The syntax used to pass value arguments to a flag.
 ///
 /// # Usage
 ///
