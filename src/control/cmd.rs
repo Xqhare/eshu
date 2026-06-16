@@ -23,7 +23,11 @@ impl Debug for dyn CliCommand<'_> {
     }
 }
 
-/// Define a custom command
+/// Define a custom subcommand with flag parsing and execution capabilities.
+///
+/// Custom subcommands can be added to the CLI via [`crate::CliBuilder::add_command`].
+/// By default, when the parser encounters a subcommand, it builds its corresponding [`Cli`]
+/// context and automatically executes the subcommand's `execute` method.
 pub trait CliCommand<'c> {
     /// The name of the command
     /// May contain no whitespace and must be unique
