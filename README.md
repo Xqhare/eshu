@@ -14,7 +14,7 @@ You can learn more about that [here](https://blog.xqhare.net/posts/why_solve_pro
 
 - [x] Error handling refactoring
 - [ ] Doc
-    - [x] Examples
+    - [ ] Examples
     - [ ] Readme
 - [x] Tests
 
