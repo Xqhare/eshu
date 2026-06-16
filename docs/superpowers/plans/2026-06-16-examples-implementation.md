@@ -276,7 +276,7 @@
 **Files:**
 - Create: `examples/manpage.rs`
 
-- [ ] **Step 1: Write template for manpage.rs**
+- [x] **Step 1: Write template for manpage.rs**
   Create `examples/manpage.rs` with the template:
   ```rust
   fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -285,11 +285,11 @@
   }
   ```
 
-- [ ] **Step 2: Compile the example**
+- [x] **Step 2: Compile the example**
   Run: `cargo check --example manpage`
   Expected: PASS
 
-- [ ] **Step 3: Write the full manpage exporter implementation**
+- [x] **Step 3: Write the full manpage exporter implementation**
   Replace the contents of `examples/manpage.rs` with the implementation:
   ```rust
   use eshu::{Cli, CliFlag, StoreSyntax, StoreType};
@@ -326,11 +326,11 @@
   }
   ```
 
-- [ ] **Step 4: Verify the manpage exporter example execution**
+- [x] **Step 4: Verify the manpage exporter example execution**
   Run: `cargo run --example manpage -- -o /tmp/man-gen.1`
   Expected: "ROFF man-page written successfully to /tmp/man-gen.1"
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
   ```bash
   git add examples/manpage.rs
   git commit -m "add(examples): implement manpage generator example"
