@@ -97,10 +97,10 @@ fn make_flag(flag: &CliFlag, out: &mut RoffString) {
             None => "VALUE",
         };
         match (flag.store_syntax, flag.required_store) {
-            (Some(StoreSyntax::Attached), true) => format!("=\\fI{}\\fR", val_str),
-            (Some(StoreSyntax::Attached), false) => format!("[=\\fI{}\\fR]", val_str),
-            (Some(StoreSyntax::Detached), true) => format!(" \\fI{}\\fR", val_str),
-            (Some(StoreSyntax::Detached), false) => format!(" [\\fI{}\\fR]", val_str),
+            (Some(StoreSyntax::Attached), true) => format!("=\\fI{val_str}\\fR"),
+            (Some(StoreSyntax::Attached), false) => format!("[=\\fI{val_str}\\fR]"),
+            (Some(StoreSyntax::Detached), true) => format!(" \\fI{val_str}\\fR"),
+            (Some(StoreSyntax::Detached), false) => format!(" [\\fI{val_str}\\fR]"),
             _ => String::new(),
         }
     } else {
@@ -110,12 +110,11 @@ fn make_flag(flag: &CliFlag, out: &mut RoffString) {
     if let Some(c) = flag.flag_char {
         // Format as: \fB\-c\fR, \fB\-\-long\-flag\fR[suffix]
         out.push_str(&format!(
-            "\\fB\\-{}\\fR, \\fB\\-\\-{}\\fR{}",
-            c, escaped_long, store_suffix
+            "\\fB\\-{c}\\fR, \\fB\\-\\-{escaped_long}\\fR{store_suffix}"
         ));
     } else {
         // Format as: \fB\-\-long\-flag\fR[suffix]
-        out.push_str(&format!("\\fB\\-\\-{}\\fR{}", escaped_long, store_suffix));
+        out.push_str(&format!("\\fB\\-\\-{escaped_long}\\fR{store_suffix}"));
     }
     out.push_str(BREAK);
 

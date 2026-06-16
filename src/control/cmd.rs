@@ -6,7 +6,7 @@ use crate::{
 };
 use nemesis::NemesisError;
 
-impl<'a> Debug for dyn CliCommand<'a> {
+impl Debug for dyn CliCommand<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CliCommand")
             .field("name", &self.name())

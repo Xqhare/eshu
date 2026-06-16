@@ -92,6 +92,7 @@ impl Store {
     /// Check if the store exists
     ///
     /// If true, the flag was passed in and no value was provided
+    #[must_use] 
     pub fn exists(&self) -> bool {
         match self {
             Store::Exists => true,
@@ -99,6 +100,7 @@ impl Store {
         }
     }
     /// Check if the store is storing a value
+    #[must_use] 
     pub fn is_value(&self) -> bool {
         match self {
             Store::Value(_) => true,
@@ -106,6 +108,7 @@ impl Store {
         }
     }
     /// Check if the store is storing a key-value pair
+    #[must_use] 
     pub fn is_key_value(&self) -> bool {
         match self {
             Store::KeyValue(_) => true,
@@ -113,6 +116,7 @@ impl Store {
         }
     }
     /// Get the stored value
+    #[must_use] 
     pub fn as_value(&self) -> Option<&Vec<String>> {
         match self {
             Store::Value(val) => Some(val),
@@ -127,6 +131,7 @@ impl Store {
         }
     }
     /// Get the stored key-value pair
+    #[must_use] 
     pub fn as_key_value(&self) -> Option<&BTreeMap<String, String>> {
         match self {
             Store::KeyValue(val) => Some(val),

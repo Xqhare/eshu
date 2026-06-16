@@ -133,7 +133,7 @@ impl<'a> Cli<'a> {
     #[must_use]
     #[inline]
     pub fn make_manpage(&self) -> RoffString {
-        generate_roff_manpage(&self)
+        generate_roff_manpage(self)
     }
 
     /// Create the help string
