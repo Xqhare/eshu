@@ -31,9 +31,6 @@
     reason = "Ignored warnings"
 )]
 
-// For 1.0.0:
-// TODO: Doc
-
 mod arg_parser;
 mod cli;
 mod control;

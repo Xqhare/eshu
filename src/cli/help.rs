@@ -187,8 +187,10 @@ struct Indentation {
 
 impl Indentation {
     /// Create a new indentation instance
+    ///
+    /// Cannot fail, falls back to a width of 90 and an amount of 30 if unable to get terminal size
     pub fn new() -> Indentation {
-        let (_, max_width) = terminal_size(stdout().as_raw_fd()).unwrap_or((0, 80));
+        let (_, max_width) = terminal_size(stdout().as_raw_fd()).unwrap_or((0, 90));
         let amount = max_width.saturating_div(3).clamp(20, 40) as usize;
         Indentation {
             max_width: max_width as usize,
