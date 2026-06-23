@@ -245,7 +245,7 @@ impl<'a> CliBuilder<'a> {
             return Err(NemesisError::new(
                 "eshu::builder",
                 EshuErrorKind::NoFlagsOrCommands,
-            ));
+            ).add_ctx("Should you intend to provide no flags or commands, use the `basic` method on the `CliBuilder`."));
         }
         let mut flag_names = HashSet::new();
         let mut flag_chars = HashSet::new();
