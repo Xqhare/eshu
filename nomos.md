@@ -1,3 +1,5 @@
+- [ ] Tab autocompletion for subcommands ::
+    * Dont know how to do this or how hard it would be to do it
 - [ ] Rework of `help` and `man` generation :: 
     * `man` generation is the most basic I could get away with
     - [ ] Support for separate man pages for subcommands ::
