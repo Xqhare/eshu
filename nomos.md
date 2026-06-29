@@ -9,6 +9,7 @@
     * Most of the needed backend (valid ANSI output) is already implemented in talos, but would need to be extracted, maybe into athena?
     * Layout assumes single byte characters (ASCII) and needs to be updated for UTF-8
     - [ ] Expand help :: -h flag could also print a bit of general usage information
-        * Grouping of flags, assigning values multiple times etc
+        * Grouping of flags, assigning values multiple times etc (Dont repeat yourself and such)
         - [ ] Help page Usage expansion ::
             * Not only the current `-f=VALUE` but the complete `program subcmd -f=VALUE`
+        - [ ] Different column widths :: for short flags, long flags etc
