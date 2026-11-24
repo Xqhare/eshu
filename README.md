@@ -30,7 +30,7 @@ Learn more about my naming scheme [here](https://blog.xqhare.net/posts/explainin
 ## Quick Reference
 
 ```bash
-$ tool_name [-a] [-bC] [-d required_arg] [-e [optional_arg]] [-f=required_arg] [-g[=optional_arg]] [-h arg0] [-h argN] [-i key=value] [--long-flags] [--long-flag[=optional_arg]] [--long-flag=required_arg] [--flag_with=key=value] [-- optional_positional_args] [subcommand] [subcommand_args_and_flags]
+$ tool_name [-a] [-bC] [-d required_arg] [-e [optional_arg]] [-f=required_arg] [-g[=optional_arg]] [-h arg0] [-h argN] [-i arg0 argN ] [-j key=value] [--long-flags] [--long-flag[=optional_arg]] [--long-flag=required_arg] [--flag_with=key=value] [-- optional_positional_args] [subcommand] [subcommand_args_and_flags]
 ```
 
 - Short Flags (Upper and Lowercase)
@@ -84,7 +84,7 @@ The term "argument" refers to all elements that are passed to a specific flag or
 In general terms the syntax offered by `Eshu` is:
 
 ```bash
-$ tool_name [-a] [-bC] [-d required_arg] [-e [optional_arg]] [-f=required_arg] [-g[=optional_arg]] [-h arg0] [-h argN] [-i key=value] [--long-flags] [--long-flag[=optional_arg]] [--long-flag=required_arg] [--flag_with=key=value] [--] [optional_positional_args] [subcommand] [subcommand_args]
+$ tool_name [-a] [-bC] [-d required_arg] [-e [optional_arg]] [-f=required_arg] [-g[=optional_arg]] [-h arg0] [-h argN] [-i arg0 argN] [-j key=value] [--long-flags] [--long-flag[=optional_arg]] [--long-flag=required_arg] [--flag_with=key=value] [--] [optional_positional_args] [subcommand] [subcommand_args]
 ```
 
 `Eshu` also supports partial long flags, as long as they are unique from other long flags.
