@@ -179,7 +179,7 @@ fn make_footer(out: &mut TermWriter) {
 
 /// Helper struct for indentation
 struct Indentation {
-    /// The maximum width of the terminal (divided by 2)
+    /// The maximum width to display text to
     pub max_width: usize,
     /// The amount of indentation per level
     pub amount: usize,
@@ -187,11 +187,11 @@ struct Indentation {
 
 impl Indentation {
     /// Create a new indentation instance
-    ///
-    /// Cannot fail, falls back to a width of 90 and an amount of 30 if unable to get terminal size
     pub fn new() -> Indentation {
-        let (_, max_width) = terminal_size(stdout().as_raw_fd()).unwrap_or((0, 90));
-        let amount = max_width.saturating_div(3).clamp(20, 40) as usize;
+        let (_, max_width) = terminal_size(stdout().as_raw_fd())
+            .unwrap_or((0, 60))
+            .min((0, 60));
+        let amount = max_width.saturating_div(3).clamp(10, 40) as usize;
         Indentation {
             max_width: max_width as usize,
             amount,
