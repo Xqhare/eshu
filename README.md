@@ -68,6 +68,9 @@ These flags will only print to `stdout` and exit.
 > [!NOTE] 
 > These flags cannot be overwritten by other flags. Usage of them is mandatory and automatic.
 
+> [!NOTE]
+> `Eshu` prints it the help message with a maximum width of 60. This is not user changeable.
+
 ### Flag Name Definitions
 
 `Eshu` encourages you to make use of flag names defined by the [GNU Coding Standards](https://web.mit.edu/gnu/doc/html/standards_18.html).

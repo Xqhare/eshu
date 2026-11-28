@@ -185,12 +185,15 @@ struct Indentation {
     pub amount: usize,
 }
 
+/// Default maximum text width.
+const MAX_TEXT_WIDTH: u16 = 60;
+
 impl Indentation {
     /// Create a new indentation instance
     pub fn new() -> Indentation {
         let (_, max_width) = terminal_size(stdout().as_raw_fd())
-            .unwrap_or((0, 60))
-            .min((0, 60));
+            .unwrap_or((0, MAX_TEXT_WIDTH))
+            .min((0, MAX_TEXT_WIDTH));
         let amount = max_width.saturating_div(3).clamp(10, 40) as usize;
         Indentation {
             max_width: max_width as usize,
