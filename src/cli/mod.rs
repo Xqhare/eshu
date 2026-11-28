@@ -10,6 +10,8 @@ pub mod builder;
 mod help;
 pub mod roff;
 
+pub use help::MAX_HELP_TEXT_WIDTH;
+
 /// Represents the parsed state of the command line interface.
 ///
 /// `Cli` is built using the builder pattern via [`Cli::new`] and [`CliBuilder`].

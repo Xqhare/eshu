@@ -37,6 +37,7 @@ mod control;
 mod error;
 mod utils;
 
+pub use cli::MAX_HELP_TEXT_WIDTH;
 pub use cli::{Cli, builder::CliBuilder};
 pub use control::*;
 pub use error::EshuErrorKind;
